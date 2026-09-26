@@ -22,5 +22,6 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run typecheck
+      - run: npx --yes wrangler@4.137.0 deploy --dry-run
       - run: npm ls --all
       - run: npm audit --omit=dev --audit-level=moderate
