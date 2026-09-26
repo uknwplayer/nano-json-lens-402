@@ -68,10 +68,10 @@
 
 **Interfaces:** Produces `GET /health` and `POST /api/lens`, with `src/server.ts` accepting an injectable `PaymentGate` interface (`challenge`, `verifyAndSettle`) and `buildLensResult`. A test-only fake gate must never ship as a production configuration.
 
-- [ ] Write failing HTTP tests for health, method/content type/shape/size errors, unpaid 402, and no protected result before settlement.
-- [ ] Run focused tests and confirm failure.
-- [ ] Implement the adapter and English error schema, including non-sensitive request outcome logs.
-- [ ] Run focused and full tests; commit and update checkpoint.
+- [x] Write failing HTTP tests for health, method/content type/shape/size errors, unpaid 402, and no protected result before settlement.
+- [x] Run focused tests and confirm failure.
+- [x] Implement the adapter and English error schema, including non-sensitive request outcome logs.
+- [x] Run focused and full tests; commit and update checkpoint.
 
 ### Task 5: Production Nano Payment Gate
 

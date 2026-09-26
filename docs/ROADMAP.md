@@ -51,6 +51,8 @@ Block 004 evidence: [protocol validation](protocol/NANO_402_WIRE_EXAMPLES.md). T
 - [ ] Failure/replay tests where supported by protocol.
 
 ## Phase 4 — Public Service
+- [x] Local Fetch HTTP handler and 12 integration tests.
+- [ ] Runtime bootstrap/adapter and real payment gate.
 - [ ] `POST /api/lens`.
 - [ ] `GET /health`.
 - [ ] HTTPS deployment.

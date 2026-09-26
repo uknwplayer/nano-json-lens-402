@@ -26,3 +26,14 @@ Task 3: complete. Covered literal hash vector, reordered objects, numeric-lookin
 Ruling: compare validates both inputs via analyze; buildLensResult reuses its validated inputs with a private diff helper. Cost: standalone comparison performs extra hashing, but all entry points preserve input limits. Final envelope size is checked in addition to bounded canonical/path/change accumulators. Cloudflare compatibility and CPU allowance remain unverified.
 
 Task 1: partial. Tasks 4–6: not started. Final whole-service review remains pending until implementation is complete.
+
+## Block 007 / Task 4
+Base: c92688defe6753473283169f50a973d8fcd1a5b6.
+
+Implemented src/server.ts createHandler with GET /health and POST /api/lens, explicit PaymentGate injection, bounded body/proof reading, safe errors, result buffering and sanitized optional outcome logging. Added .env.example as an inactive deployment template.
+
+Evidence: 11 HTTP tests failed against the initial 501 scaffold. A twelfth test exposed absence of a body deadline (402 instead of 408); adding the body deadline made it pass. Final npm test: 36/36; npm run typecheck and git diff --check: exit 0. Tests use local Request/Response objects, not sockets or external payment calls.
+
+Ruling: the HTTP layer is a portable Fetch handler; the actual listening/deployment adapter remains a deployment task. Cost: the repository cannot serve public traffic until bootstrap and the real gate are provided. Raw request digest is passed to the gate but is not claimed to establish payment binding. Unknown payment status returns 503 without a result; Task 5 must prevent unsafe automatic re-settlement.
+
+Task 4: complete locally. Task 1 remains partial; Task 5 and 6 pending. No production payment or hosted endpoint exists. Final whole-service review remains pending.

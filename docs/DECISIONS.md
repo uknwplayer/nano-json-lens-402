@@ -52,3 +52,9 @@ Use Microsoft jsonc-parser 3.3.1 (MIT), pinned with a lockfile, to inspect synta
 Use Node.js >=24 for local TypeScript execution and the Node test runner, with TypeScript 5.9.3 for static checking. This is not a guarantee of Cloudflare runtime compatibility.
 
 Ruling: early depth/node checks move forward from Task 3 into Task 2 to protect parsing. Cost: all later callers must preserve these limits. Finite numeric values use JavaScript binary64 semantics; exact decimal precision is outside V1.
+
+## D-011 — Portable HTTP Handler and Explicit Payment Gate
+**Status:** implemented in Block 007
+Use the standard Request/Response Fetch interface to support a later Node or Workers adapter. No server bootstrap is configured yet. An explicit PaymentGate is mandatory; test doubles are confined to test code. Buffer bounded useful output before settlement and release only after the adapter reports a valid settlement receipt. Compute a raw-body SHA-256 for the adapter, without claiming that the digest by itself cryptographically binds a Nano payment.
+
+Default body timeout is 5000 ms; maximum body 65536 bytes and payment header 16384 characters. All responses disable caching. Adapter errors become sanitized 503 responses. Ambiguous settlement, retry policy and durable replay state must be solved in Task 5 before public operation.
