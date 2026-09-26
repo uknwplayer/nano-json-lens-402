@@ -1,5 +1,6 @@
 import { HTTPFacilitatorClient, x402ResourceServer } from '@x402/core/server';
 import { ExactNanoScheme } from '@x402nano/exact/server';
+import { createPaymentBootstrap, type PaymentBootstrap } from './bootstrap.ts';
 
 export interface ProductionNanoResourceServerOptions {
   readonly facilitatorUrl: string;
@@ -22,4 +23,15 @@ export function createProductionNanoResourceServer(
   const resourceServer = new x402ResourceServer(facilitator);
   resourceServer.register('nano:mainnet', new ExactNanoScheme());
   return resourceServer;
+}
+
+/**
+ * Construct the production resource server behind the fail-closed bootstrap boundary.
+ * Creating this object remains offline; callers must explicitly await initialize()
+ * before the underlying x402 resource server can be obtained.
+ */
+export function createProductionNanoPaymentBootstrap(
+  options: ProductionNanoResourceServerOptions,
+): PaymentBootstrap<x402ResourceServer> {
+  return createPaymentBootstrap(createProductionNanoResourceServer(options));
 }
