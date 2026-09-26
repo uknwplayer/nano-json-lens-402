@@ -26,7 +26,7 @@ export interface ProductionNanoResourceServerOptions {
 }
 
 export interface ProductionNanoResourceServer extends ResourceServerLike, InitializableResourceServer {
-  hasRegisteredScheme(network: string, scheme: string): boolean;
+  hasRegisteredScheme(network: `${string}:${string}`, scheme: string): boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -48,7 +48,7 @@ function toCoreRequirement(requirement: PaymentRequirements): CorePaymentRequire
     amount: requirement.amount,
     payTo: requirement.payTo,
     maxTimeoutSeconds: requirement.maxTimeoutSeconds!,
-    ...(requirement.extra === undefined ? {} : { extra: requirement.extra }),
+    extra: requirement.extra ?? {},
   };
 }
 
@@ -121,7 +121,7 @@ function adaptResourceServer(resourceServer: x402ResourceServer): ProductionNano
     initialize(): Promise<void> {
       return resourceServer.initialize();
     },
-    hasRegisteredScheme(network: string, scheme: string): boolean {
+    hasRegisteredScheme(network: `${string}:${string}`, scheme: string): boolean {
       return resourceServer.hasRegisteredScheme(network, scheme);
     },
     async buildPaymentRequirements(config: PaymentResourceConfig): Promise<PaymentRequirements[]> {
