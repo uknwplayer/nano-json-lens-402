@@ -1,35 +1,31 @@
 # CURRENT CHECKPOINT — Nano JSON Lens 402
 
 **Date:** 2026-09-26  
-**Block:** 003 — V1 technical specification draft  
-**Overall state:** DESIGN DRAFT AWAITING REVIEW / IMPLEMENTATION NOT STARTED
+**Block:** 003 — V1 specification approved; implementation plan written  
+**Overall state:** PLAN AWAITING OPERATOR REVIEW / IMPLEMENTATION NOT STARTED
 
 ## Mission
-Build and publish a genuinely useful deterministic JSON analysis service paid in Nano mainnet, with public payment-taking code and a stable public endpoint for Pursekeeper's seller newcomer criteria.
+Build a genuinely useful deterministic JSON analysis service paid in Nano mainnet, with public payment-taking code and a stable public endpoint for Pursekeeper's seller newcomer criteria.
 
-## Completed this block
-- Read the current README, architecture, roadmap, decision log, acceptance criteria, and prior checkpoint.
-- Wrote [V1 technical specification draft](../specs/V1_TECHNICAL_SPEC.md): HTTP input/output, canonicalization, metrics/diff, bounds, error schema, payment and deployment gates, verification plan.
-- Did not implement, deploy, perform a payment, or claim eligibility acceptance.
+## Completed
+- English documentation foundation (blocks 001 and 002).
+- Operator approved the [V1 technical specification](../specs/V1_TECHNICAL_SPEC.md) on 2026-09-26.
+- Wrote the [task-by-task implementation plan](../../docs/superpowers/plans/2026-09-26-nano-json-lens-v1.md), covering protocol validation, parsing, analysis, HTTP, payment, deployment and Pursekeeper acceptance.
+- Updated this checkpoint at block closure.
 
-## Current decisions
-- English is the project language; private operator conversation may be Portuguese.
-- Separate public repository: `uknwplayer/nano-json-lens-402`.
-- Proposed endpoint: `POST /api/lens`; proposed free reachability endpoint: `GET /health`.
-- No arbitrary URL fetch or wallet seed/private key in repository.
-- Update this checkpoint at the end of every work block.
-
-## Pending review and external facts
-- Operator review of the written specification and any contract changes.
-- Confirm public Nano receiving address and initial price (`0.01 XNO` proposed).
-- Independently verify the current Nano x402 package version, facilitator API, exact headers, settlement/replay behavior, and raw-unit conversion from primary source; previous reference is not confirmation.
-- Choose a compatible, affordable deployment provider and license.
+## Pending review and facts
+- Operator review of the implementation plan and selection of execution method.
+- Confirm public Nano receiving address, price (`0.01 XNO` proposed), current package/facilitator wire contract, deployment provider and license in plan Task 1.
+- Do not implement payment code with guessed protocol values.
 
 ## Technical state
-Documentation exists. No product source code, tests, hosted URL, paid call, or 14-day availability window exists yet. Do not mark roadmap implementation items complete.
+No product source code, tests, hosted URL, paid call, or 14-day availability window exists yet. Planned tasks are not completed tasks. Pursekeeper's prepayment has not been claimed.
+
+## Rules
+All project artifacts, public errors and customer communication use English; private operator conversation may use Portuguese. No wallet seed or private key in source or runtime. End each work block by updating this checkpoint and record material milestones in history. Pause about every 15 minutes for the operator to continue.
 
 ## Exact next step
-The operator reviews `docs/specs/V1_TECHNICAL_SPEC.md`. Incorporate requested changes, resolve external gates, then produce a testable implementation plan. Implementation begins after the spec and plan are approved.
+Operator reviews `docs/superpowers/plans/2026-09-26-nano-json-lens-v1.md` and chooses native execution or subagent-driven execution. Then start Task 1 with primary-source verification and public-parameter confirmation. Keep source references and evidence in the repository.
 
 ## Resume instruction
-Read this file, `docs/specs/V1_TECHNICAL_SPEC.md`, `docs/ROADMAP.md`, and `docs/DECISIONS.md`; verify the current repository state. Keep all project artifacts in English. Update this checkpoint at the end of the next work block. Planned work is not completed work.
+Read this file, the specification, the plan, roadmap and decisions; inspect the actual repository state. Do not infer implementation from the plan. Update this checkpoint at the end of the next work block.
