@@ -1,3 +1,4 @@
+import type { ResourceConfig } from '@x402/core/server';
 import type {
   PaymentContext,
   PaymentGate,
@@ -17,7 +18,7 @@ interface PaymentRequirements {
 }
 
 export interface ResourceServerLike {
-  buildPaymentRequirements(config: Record<string, unknown>): Promise<PaymentRequirements[]>;
+  buildPaymentRequirements(config: ResourceConfig): Promise<PaymentRequirements[]>;
   createPaymentRequiredResponse(
     requirements: PaymentRequirements[],
     resource: Record<string, unknown>,
