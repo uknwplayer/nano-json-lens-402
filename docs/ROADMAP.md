@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nano/exact` 0.3.0 with `@x402/core` 2.24.0 and validated the real resource-server construction API. Block 012 added a fail-closed initialization boundary and successfully synchronized the real Pursekeeper supported capabilities. Task 1 remains partial because runtime/deployment selection and final live service integration are still pending.
+Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nano/exact` 0.3.0 with `@x402/core` 2.24.0 and validated the real resource-server construction API. Block 012 added a fail-closed initialization boundary and successfully synchronized the real Pursekeeper supported capabilities. Block 013 proved the actual initialized HTTP 402 challenge path. Task 1 remains partial because runtime/deployment and persistent production state storage are still pending.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -44,8 +44,8 @@ Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nan
 - [x] Unit tests and edge cases.
 
 ## Phase 3 — Nano 402
-- [ ] Unpaid request returns correct production 402 challenge.
-- [ ] Include production network, price, and payTo through initialized pinned adapter.
+- [x] Unpaid request returns correct production 402 challenge.
+- [x] Include production network, price, and payTo through initialized pinned adapter.
 - [x] Decode and structurally validate local payment proof envelope.
 - [ ] Verify payment through initialized pinned real x402 adapter.
 - [ ] Settle payment through initialized pinned real x402 adapter.
@@ -56,18 +56,23 @@ Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nan
 - [x] Construct and test the production `resourceServer` adapter offline.
 - [x] Add and test explicit fail-closed facilitator initialization/bootstrap boundary.
 - [x] Validate live read-only Pursekeeper supported synchronization through the pinned production bootstrap.
-- [ ] Wire only a ready production bootstrap into the real Nano `PaymentGate` startup path.
-- [ ] Generate and inspect the actual production 402 challenge without submitting payment.
+- [x] Wire only a ready production bootstrap into the production Nano `PaymentGate` composition.
+- [x] Reject non-production replay state from production gate composition.
+- [x] Generate and inspect the actual initialized production HTTP 402 challenge without submitting payment.
+- [ ] Select a persistent state backend compatible with the final free deployment runtime.
+- [ ] Implement and test a truly `productionSafe` persistent `PaymentStateStore`.
+- [ ] Prove replay/settlement state survives process restart or redeploy according to the selected backend guarantees.
+- [ ] Wire that persistent store into the payment-taking production startup path.
 
-Blocks 008–010 established and hardened the local PaymentGate. Block 011 moved the project onto the pinned real x402 packages. Block 012 added the bootstrap state machine and proved live read-only capability synchronization against Pursekeeper. The current local suite is 68/68 GREEN with typecheck, dependency-tree validation, and production dependency audit GREEN. Live `verify` and `settle` have still not been called.
+Blocks 008–010 established and hardened the local PaymentGate. Block 011 moved the project onto the pinned real x402 packages. Block 012 added the bootstrap state machine and proved live read-only capability synchronization against Pursekeeper. Block 013 added a strict production composition boundary and proved a real initialized `POST /api/lens` request returns the expected 402 challenge: x402 v2, `exact`, `nano:mainnet`, `XNO`, `0.01 XNO`, expected payTo, matching request digest metadata, and matching `payment-required` header/body. The local suite is 71/71 GREEN with typecheck, dependency-tree validation, and production dependency audit GREEN. Live `verify` and `settle` have still not been called. Payment-taking production traffic remains blocked until persistent replay/settlement state exists.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
-- [ ] Runtime bootstrap/adapter and real payment gate.
+- [ ] Runtime bootstrap/adapter and real payment gate with persistent production state.
 - [ ] `POST /api/lens` live.
 - [ ] `GET /health` live.
 - [ ] HTTPS deployment.
-- [ ] External 402 test.
+- [ ] External 402 test against the deployed endpoint.
 - [ ] Logging/security review.
 
 ## Phase 5 — Pursekeeper: 10 XNO
