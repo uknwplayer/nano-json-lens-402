@@ -178,3 +178,16 @@ test('concurrent replay of one proof can reach settlement at most once', async (
   assert.equal(fake.calls.filter(call => call === 'settle').length, 1);
   assert.equal(results.filter(result => result.settled).length, 1);
 });
+
+test('retry after confirmed settlement is idempotent and never settles twice', async () => {
+  const fake = fakeServer();
+  const { gate } = setup(fake, new MemoryPaymentStateStore());
+  const paymentProof = proof();
+
+  const first = await gate.verifyAndSettle(context, paymentProof);
+  const second = await gate.verifyAndSettle(context, paymentProof);
+
+  assert.equal(first.settled, true);
+  assert.equal(second.settled, true);
+  assert.equal(fake.calls.filter(call => call === 'settle').length, 1);
+});
