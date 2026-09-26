@@ -24,6 +24,21 @@ Production composition is stricter than the generic test/development gate:
 
 `requestDigest` remains local service metadata used to detect request/payment mismatches. It must not be described as cryptographic binding between the Nano block and submitted JSON. Nano settlement remains authoritative for actual payment finality; the local state store is a mandatory production defense for replay, idempotency, concurrency, entitlement recovery, and settlement uncertainty.
 
+## Persistent Replay and Settlement State
+The V1 production target is Cloudflare D1. The D1 adapter must preserve these invariants:
+- `payment_identity` is unique and cannot be rebound to another request digest;
+- `operation_id` is unique;
+- claims use a uniqueness constraint plus a read-back decision, never a check-then-insert race;
+- state transitions use conditional `UPDATE ... WHERE state = ?` compare-and-set semantics;
+- confirmed settlement must transition `settling -> settled` and store the bounded receipt in **one database statement**;
+- a stale settlement confirmation must fail closed and must not write a receipt;
+- stored receipts are validated again when read;
+- database errors and ambiguous write outcomes propagate as failures; the project does not add automatic write retries around settlement confirmation.
+
+The atomic `confirmSettlement` store contract exists specifically to remove the prior crash gap in which `settled` could have been persisted before its entitlement receipt. The generic legacy receipt-write method remains for compatibility/local use but is not used by the production payment settlement path.
+
+Local D1 contract tests use Node's SQLite implementation to exercise the same SQL schema and statement behavior, including closing and reopening the database. This is evidence for SQL/state semantics, not proof that a remote Cloudflare D1 database has already been provisioned or deployed.
+
 ## Availability
 The health endpoint must be inexpensive and independent of heavy processing. The 14-day requirement makes deployment and configuration failures operationally important.
 
