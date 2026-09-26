@@ -1,59 +1,56 @@
-# Regras de continuidade
+# Continuity Rules
 
-Estas regras existem para que o projeto sobreviva a troca de chat, agente, sessão ou ferramenta sem depender da memória da conversa.
+These rules allow the project to survive changes of chat, agent, session, or tool without depending on conversation memory.
 
-## Regra principal
+## Project Language
+English is the official language for all repository artifacts, code, comments, API surfaces, public errors, operational documentation, issues, releases, and customer-facing communication.
 
-**É obrigatório atualizar `docs/checkpoints/CHECKPOINT_CURRENT.md` ao final de cada bloco de trabalho.**
+## Primary Rule
+**`docs/checkpoints/CHECKPOINT_CURRENT.md` must be updated at the end of every work block.**
 
-Um bloco é qualquer unidade de trabalho que:
-- altere código ou documentação;
-- tome uma decisão técnica;
-- conclua um teste;
-- faça deploy;
-- altere configuração;
-- encontre erro/bloqueio relevante;
-- envie algo ao Pursekeeper.
+A work block is any unit that:
+- changes code or documentation;
+- makes a technical decision;
+- completes a test;
+- performs a deployment;
+- changes configuration;
+- discovers a relevant error/blocker;
+- sends a submission or update to Pursekeeper.
 
-## Ordem de retomada
+## Resume Order
+Any new agent must:
+1. read `docs/checkpoints/CHECKPOINT_CURRENT.md`;
+2. read `docs/ROADMAP.md`;
+3. consult documents referenced by the checkpoint;
+4. verify that claimed repository state actually exists;
+5. execute only the recorded next step, or explicitly revise the plan.
 
-Qualquer agente novo deve:
-1. ler `docs/checkpoints/CHECKPOINT_CURRENT.md`;
-2. ler `docs/ROADMAP.md`;
-3. consultar documentos citados pelo checkpoint;
-4. verificar no repositório se o estado descrito realmente existe;
-5. executar somente o próximo passo registrado ou atualizar o plano explicitamente.
+## Minimum Checkpoint Content
+- current state;
+- last completed block;
+- active decisions;
+- relevant files/commits;
+- tests performed and results;
+- pending work;
+- blockers/risks;
+- exact next step;
+- items requiring human confirmation;
+- checkpoint date.
 
-## Conteúdo mínimo do checkpoint
-
-- estado atual;
-- último bloco concluído;
-- decisões vigentes;
-- arquivos/commits relevantes;
-- testes executados e resultados;
-- pendências;
-- bloqueios/riscos;
-- próximo passo exato;
-- itens que exigem confirmação humana;
-- data do checkpoint.
-
-## Histórico
-
-Quando um bloco representar marco material, copiar o estado para:
+## History
+For a material milestone, snapshot state to:
 `docs/checkpoints/history/YYYY-MM-DD_NNN.md`.
 
-O arquivo CURRENT é mutável. Os snapshots históricos não devem ser reescritos salvo correção claramente documentada.
+CURRENT is mutable. Historical snapshots should not be rewritten except for a clearly documented correction.
 
-## Verdade vs plano
-
+## Fact vs Plan
 Use:
-- **CONCLUÍDO** somente para algo verificado;
-- **PLANEJADO** para intenção;
-- **BLOQUEADO** para dependência não resolvida;
-- **NÃO VERIFICADO** quando não houver evidência suficiente.
+- **COMPLETED** only for verified work;
+- **PLANNED** for intended work;
+- **BLOCKED** for unresolved dependencies;
+- **UNVERIFIED** where evidence is insufficient.
 
-Nunca converter intenção em fato no checkpoint.
+Never convert intent into fact in a checkpoint.
 
-## Segredos
-
-Nunca registrar seed, chave privada, token, credencial ou header de pagamento reutilizável. Endereço público Nano pode ser registrado quando confirmado.
+## Secrets
+Never record a wallet seed, private key, token, credential, or reusable payment header. A confirmed public Nano address may be recorded.

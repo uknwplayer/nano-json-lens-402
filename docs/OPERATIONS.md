@@ -1,36 +1,30 @@
-# Operação e disponibilidade
+# Operations and Availability
 
-## Meta inicial
-
-Manter o endpoint público e funcional durante toda a janela exigida pelo Pursekeeper, com margem além dos 14 dias.
+## Initial Availability Goal
+Keep the public endpoint functional throughout the Pursekeeper-required window, with margin beyond the 14-day period.
 
 ## Health
+Planned endpoint: `GET /health`
 
-Planejado:
-`GET /health`
-
-Resposta mínima deverá indicar:
+Minimum response should expose:
 - status;
-- versão/build;
-- timestamp do servidor, se útil.
+- version/build;
+- server timestamp if useful.
 
-Não deve depender de pagamento.
+It must not require payment.
 
-## Incidentes
+## Incident Procedure
+If an outage occurs:
+1. record the approximate time;
+2. identify the cause;
+3. restore service;
+4. test health;
+5. test the 402 challenge;
+6. update the checkpoint;
+7. determine whether Pursekeeper must be informed or the reachability window must restart.
 
-Se houver indisponibilidade:
-1. registrar horário aproximado;
-2. identificar causa;
-3. restaurar serviço;
-4. testar health;
-5. testar desafio 402;
-6. atualizar checkpoint;
-7. avaliar se é necessário informar/reiniciar contagem com Pursekeeper.
+## Deployment
+The provider is not yet selected. Do not assume Vercel, persistent server, or edge runtime until Nano x402 library compatibility is tested.
 
-## Deploy
-
-O provedor ainda será escolhido. Não assumir Vercel, servidor persistente ou edge até teste de compatibilidade com a biblioteca Nano 402.
-
-## Mudanças durante janela
-
-Evitar mudanças de alto risco durante os 14 dias. Correções urgentes devem ser pequenas, testadas e documentadas.
+## Changes During the 14-Day Window
+Avoid high-risk changes during the 14-day window. Urgent fixes should be small, tested, and documented.

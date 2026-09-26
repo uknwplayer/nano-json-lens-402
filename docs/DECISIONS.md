@@ -1,31 +1,34 @@
-# Registro de decisões
+# Decision Log
 
-## D-001 — Repositório dedicado e público
-**Status:** aceito  
-O serviço fica em `uknwplayer/nano-json-lens-402`, separado do ARCA. Isso reduz acoplamento e atende ao requisito de código público em repositório próprio.
+## D-001 — Dedicated Public Repository
+**Status:** accepted  
+The service lives in `uknwplayer/nano-json-lens-402`, separate from ARCA.
 
-## D-002 — Serviço útil e determinístico
-**Status:** proposta de design vigente  
-O produto inicial é um JSON Lens, não um stub. Processamento local reduz custo e dependências.
+## D-002 — Useful Deterministic Service
+**Status:** active design proposal  
+The initial product is a JSON Lens, not a stub.
 
-## D-003 — Sem fetch arbitrário na V1
-**Status:** proposta de design vigente  
-Evita SSRF, timeouts externos e dependência de terceiros.
+## D-003 — No Arbitrary Fetch in V1
+**Status:** active design proposal  
+This avoids SSRF, external timeouts, and unnecessary third-party dependencies.
 
-## D-004 — Endpoint de health gratuito
-**Status:** proposta de design vigente  
-Separar reachability da operação paga simplifica observabilidade.
+## D-004 — Free Health Endpoint
+**Status:** active design proposal  
+Separating reachability from the paid operation simplifies observability.
 
-## D-005 — Checkpoint obrigatório
-**Status:** aceito  
-Todo bloco termina atualizando `docs/checkpoints/CHECKPOINT_CURRENT.md`.
+## D-005 — Mandatory Checkpoint
+**Status:** accepted  
+Every work block ends by updating `docs/checkpoints/CHECKPOINT_CURRENT.md`.
 
-## Decisões ainda abertas
+## D-006 — English as the Official Project Language
+**Status:** accepted  
+All repository content, source code, code comments, API fields, public error messages, operational logs, documentation, issues, releases, and Pursekeeper/customer-facing communication must use English. Portuguese is reserved for the private working conversation with the operator.
 
-- runtime/provedor de deploy;
-- versão/biblioteca x402 Nano final;
+## Open Decisions
+- deployment runtime/provider;
+- final Nano x402 library/version;
 - facilitator;
-- preço definitivo;
-- endereço Nano público;
-- limites de payload;
-- licença.
+- final price;
+- public Nano address;
+- payload limits;
+- license.

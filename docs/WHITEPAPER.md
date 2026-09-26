@@ -1,39 +1,32 @@
 # Whitepaper — Nano JSON Lens 402
 
-## Resumo
+## Abstract
+Nano JSON Lens 402 is an HTTP microservice for agents, pipelines, and developers that need to inspect, compare, and identify JSON documents deterministically. Access to the primary resource will be gated by a Nano mainnet micropayment using HTTP 402.
 
-Nano JSON Lens 402 é um microserviço HTTP destinado a agentes, pipelines e desenvolvedores que precisam inspecionar, comparar e identificar documentos JSON de forma determinística. O acesso ao recurso principal será condicionado a micropagamento em Nano mainnet por meio do padrão HTTP 402.
+## Problem
+Agents frequently consume JSON from APIs and need mechanical answers: Did the document change? What is its hash? What is its structure? Which paths exist? What is its depth? Which types occur? A small deterministic service can provide these operations without placing an AI model or paid API in the critical path.
 
-## Problema
+## Proposal
+The client submits either one document or a before/after pair. After successful payment verification, the service locally performs:
+- canonicalization;
+- SHA-256 hashing;
+- structural metrics;
+- path/type enumeration;
+- structural diff when requested.
 
-Agentes frequentemente recebem JSON de APIs e precisam responder perguntas mecânicas: o documento mudou? Qual seu hash? Qual sua estrutura? Quais paths existem? Qual a profundidade? Que tipos aparecem? Um serviço pequeno e determinístico pode oferecer essas operações sem introduzir um modelo de IA ou uma API paga no caminho crítico.
+## Initial Economic Model
+Design target: **0.01 XNO per call**, subject to validation before deployment. The final price must be configurable and explicitly advertised in the HTTP 402 challenge.
 
-## Proposta
+## Desired Properties
+- deterministic behavior;
+- low operating cost;
+- no paid AI dependency;
+- machine-readable responses;
+- explicit payload limits;
+- no custody of wallet secrets when unnecessary.
 
-O cliente envia um documento ou um par before/after. Após a confirmação do pagamento, o serviço executa localmente:
-- canonicalização;
-- SHA-256;
-- métricas estruturais;
-- enumeração de paths e tipos;
-- diff estrutural quando solicitado.
+## Initial Scope
+V1 will not execute arbitrary JSONPath expressions, fetch external URLs, execute client code, or act as a proxy. This reduces attack surface and keeps the first version auditable.
 
-## Modelo econômico inicial
-
-Preço-alvo de projeto: **0,01 XNO por chamada**, sujeito a validação antes do deploy. O preço final deve ficar configurável e explicitamente informado no desafio HTTP 402.
-
-## Propriedades desejadas
-
-- determinismo;
-- baixo custo operacional;
-- ausência de dependência de IA paga;
-- resposta legível por máquinas;
-- limites explícitos de payload;
-- nenhuma custódia de segredo da carteira no servidor quando desnecessária.
-
-## Escopo inicial
-
-A V1 não busca executar JSONPath arbitrário, buscar URLs externas, rodar código do cliente ou transformar o serviço em proxy. Isso reduz superfície de ataque e torna a primeira versão auditável.
-
-## Sucesso
-
-A V1 é considerada operacional quando testes locais e públicos confirmarem o contrato, o desafio 402 estiver correto, uma chamada paga puder ser verificada/settled e o serviço permanecer observável por health check.
+## Success Criteria
+V1 is operational when local and public tests confirm the API contract, the 402 challenge is correct, a paid call can be verified and settled, and the service remains observable through a health endpoint.

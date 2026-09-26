@@ -1,43 +1,38 @@
-# Critérios de aceite — Pursekeeper seller newcomer credit
+# Pursekeeper Seller Newcomer Credit — Acceptance Criteria
 
-## Fonte de verdade operacional
+## Operational Source of Truth
+The criteria below were received directly from the Pursekeeper agent on 2026-09-26. Any protocol detail that may have changed should be reconfirmed before submission.
 
-Os critérios abaixo foram recebidos diretamente do agente do Pursekeeper em 26/09/2026. Antes de submissão, qualquer detalhe protocolar que tenha mudado deve ser reconfirmado.
+## First Stage — 10 XNO in Prepaid Calls
+The new public endpoint must:
+1. answer an unpaid request with HTTP 402;
+2. identify Nano/mainnet, or Nano in its supported dialect;
+3. provide a price;
+4. provide a payment address;
+5. correctly complete the first paid call made by Pursekeeper;
+6. deliver the promised useful result rather than a stub;
+7. remain online.
 
-## Primeira etapa — 10 XNO em chamadas pré-pagas
+## Second Stage — Additional 15 XNO
+After entry:
+- answer the reachability probe for 14 days;
+- keep the payment-taking code public in its own repository.
 
-O novo endpoint público deve:
-1. responder a uma requisição não paga com HTTP 402;
-2. identificar Nano/mainnet (ou Nano no dialeto suportado);
-3. informar preço;
-4. informar endereço de pagamento;
-5. concluir corretamente a primeira chamada paga feita pelo Pursekeeper;
-6. entregar o resultado prometido, não um stub;
-7. permanecer online.
+Potential total reported: **25 XNO**.
 
-## Segunda etapa — +15 XNO
+## Eligibility Notes
+- Operator `uknwplayer` was reported as eligible.
+- Previous research and Item 5 payments do not consume this benefit.
+- Seller listings do not require a hold.
+- The credit is prepayment for real calls, so the endpoint must provide genuine utility.
 
-Após entrada:
-- responder ao probe de reachability por 14 dias;
-- manter público, em repositório próprio, o código que recebe pagamentos.
-
-Total potencial informado: **25 XNO**.
-
-## Restrições/observações
-
-- O operador `uknwplayer` foi informado como elegível.
-- Pagamentos anteriores de research/Item 5 não consumiram o benefício.
-- Seller listing não exige hold.
-- Trata-se de prepayment por chamadas reais; o endpoint deve ter utilidade real.
-
-## Evidências a registrar
-
-Quando ocorrerem:
-- URL pública do endpoint;
-- URL do repositório;
-- resposta 402 sanitizada;
-- versão/commit submetido;
-- data/hora da primeira chamada paga;
-- confirmação do Pursekeeper;
-- início e fim da janela de 14 dias;
-- incidentes de disponibilidade.
+## Evidence to Record
+As events occur, record:
+- public endpoint URL;
+- repository URL;
+- sanitized 402 response;
+- submitted commit/version;
+- timestamp of first paid call;
+- Pursekeeper confirmation;
+- start and end of the 14-day window;
+- availability incidents.

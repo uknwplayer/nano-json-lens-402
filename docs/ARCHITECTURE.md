@@ -1,78 +1,73 @@
-# Arquitetura
+# Architecture
 
-## Visão lógica
-
+## Logical View
 ```text
-Cliente
+Client
   |
   | POST /api/lens
   v
-Camada HTTP
+HTTP Layer
   |
-  +-- sem prova de pagamento --> HTTP 402 + requisitos Nano
+  +-- no payment proof --> HTTP 402 + Nano payment requirements
   |
-  +-- com prova --> verificação/settlement
-                        |
-                        v
-                   JSON Lens
-                        |
-                        v
-                 resposta HTTP 200
+  +-- proof supplied --> verification / settlement
+                              |
+                              v
+                          JSON Lens
+                              |
+                              v
+                         HTTP 200 result
 ```
 
-## Componentes
+## Components
 
-### 1. Camada HTTP
-Valida método, content-type, tamanho e formato básico.
+### 1. HTTP Layer
+Validates method, content type, payload size, and basic request shape.
 
 ### 2. Payment Gate
-Deve anunciar:
+Must advertise:
 - HTTP 402;
-- rede Nano mainnet;
-- preço;
-- endereço público de recebimento;
-- metadados exigidos pela implementação x402 escolhida.
+- Nano mainnet;
+- price;
+- public receiving address;
+- metadata required by the selected x402 implementation.
 
-A implementação de referência considerada é `x402nano/exact`. A integração exata será fixada durante a especificação de implementação.
+The current reference candidate is `x402nano/exact`. Exact integration will be fixed during the implementation specification.
 
 ### 3. JSON Lens
-Código puro, sem rede:
-- canonicalização;
+Pure local processing with no network access:
+- canonicalization;
 - SHA-256;
-- métricas;
-- paths/tipos;
+- metrics;
+- paths/types;
 - diff.
 
 ### 4. Health
-`GET /health` não depende de pagamento e deve permitir verificar disponibilidade do serviço.
+`GET /health` is free and provides a simple public availability signal.
 
-## Configuração
-
-Valores que devem ser configuráveis:
-- endereço Nano público de recebimento;
-- preço;
+## Configuration
+The following values must be configurable:
+- public Nano receiving address;
+- price;
 - network;
-- URL/configuração do facilitator;
-- limite máximo de payload.
+- facilitator URL/configuration;
+- maximum payload size.
 
-Nenhuma seed/chave privada deve entrar no repositório.
+No wallet seed or private key may enter the repository.
 
-## Deploy
+## Deployment
+No provider has been selected yet. Candidates to validate:
+1. Vercel / Node serverless;
+2. persistent Node service;
+3. compatible edge runtime.
 
-Ainda não escolhido definitivamente. Opções a validar:
-1. Vercel/Node serverless;
-2. serviço Node persistente;
-3. runtime edge compatível.
+Selection criteria: zero or minimal cost, public HTTPS, Nano x402 compatibility, and stability for at least 14 days.
 
-Critérios: custo zero ou mínimo, HTTPS público, compatibilidade com x402 Nano e estabilidade por pelo menos 14 dias.
+## Minimum Observability
+- health endpoint;
+- logs that do not retain sensitive payloads;
+- verification/settlement status without secrets;
+- identifiable build/version.
 
-## Observabilidade mínima
-
-- health check;
-- logs sem payload sensível;
-- status de verificação/settlement sem registrar segredo;
-- versão/build identificável.
-
-## Segurança
-
-Sem fetch arbitrário de URLs, execução de código, acesso a filesystem do usuário ou armazenamento obrigatório do documento enviado.
+## Security Boundary
+V1 does not fetch arbitrary URLs, execute submitted code, expose user filesystem access, or require persistent storage of submitted documents.

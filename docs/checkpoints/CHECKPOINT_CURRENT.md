@@ -1,105 +1,87 @@
-# CHECKPOINT CURRENT — Nano JSON Lens 402
+# CURRENT CHECKPOINT — Nano JSON Lens 402
 
-**Data:** 2026-09-26  
-**Bloco:** 001 — Fundação documental  
-**Estado geral:** FUNDAÇÃO CONCLUÍDA / IMPLEMENTAÇÃO AINDA NÃO INICIADA
+**Date:** 2026-09-26  
+**Block:** 002 — Project language standardization  
+**Overall state:** DOCUMENTATION FOUNDATION COMPLETE / IMPLEMENTATION NOT STARTED
 
-## Missão
+## Mission
+Build and publish a useful JSON structural-analysis service protected by Nano HTTP 402, with public code, low operating cost, and the ability to satisfy Pursekeeper seller newcomer credit criteria.
 
-Construir e publicar um serviço útil de análise estrutural de JSON protegido por Nano HTTP 402, com código público, operação de baixo custo e capacidade de cumprir os critérios do seller newcomer credit do Pursekeeper.
+## Last Completed Block
+English has been established as the official project language. Existing foundation documentation was translated to English.
 
-## Último bloco concluído
+## Language Rule
+All repository content, source code, comments, API fields, public error messages, operational logs, documentation, issues, releases, and Pursekeeper/customer-facing communication must be written in English. Portuguese is reserved for the private working conversation with the operator.
 
-Foi criada a fundação documental do repositório:
-- `README.md`
-- `docs/WHITEPAPER.md`
-- `docs/ARCHITECTURE.md`
-- `docs/ROADMAP.md`
-- `docs/PURSEKEEPER_ACCEPTANCE.md`
-- `docs/CONTINUITY_RULES.md`
-- `docs/SECURITY.md`
-- `docs/OPERATIONS.md`
-- `docs/DECISIONS.md`
-- snapshot `docs/checkpoints/history/2026-09-26_001.md`
+## Active Decisions
+1. Dedicated public repository: `uknwplayer/nano-json-lens-402`.
+2. Proposed V1 product: deterministic JSON Lens.
+3. Planned paid resource: `POST /api/lens`.
+4. Planned free health endpoint: `GET /health`.
+5. No arbitrary URL fetching in V1.
+6. No wallet seed/private key in source code.
+7. Update this checkpoint at the end of every work block.
+8. English is the official project language.
 
-## Decisões vigentes
+## Technical State
 
-1. Repositório próprio e público: `uknwplayer/nano-json-lens-402`.
-2. Produto V1 proposto: JSON Lens determinístico.
-3. Recurso principal planejado: `POST /api/lens`.
-4. Health planejado: `GET /health`.
-5. Sem fetch arbitrário de URLs na V1.
-6. Nenhuma seed/chave privada no código.
-7. Checkpoint corrente deve ser atualizado ao final de TODO bloco de trabalho.
+### COMPLETED
+- public repository;
+- documentation foundation;
+- roadmap;
+- continuity/security rules;
+- English language standardization.
 
-## Critérios externos conhecidos
-
-Primeira etapa Pursekeeper:
-- requisição não paga responde 402;
-- identifica Nano/mainnet;
-- informa preço e endereço;
-- primeira chamada paga pelo Pursekeeper conclui;
-- entrega resultado útil real;
-- serviço fica online.
-
-Segunda etapa:
-- reachability por 14 dias;
-- código de recebimento público no próprio repositório.
-
-## Estado técnico
-
-### CONCLUÍDO
-- repositório público;
-- documentação de fundação;
-- roadmap inicial;
-- regras de continuidade e segurança.
-
-### PLANEJADO, NÃO IMPLEMENTADO
+### PLANNED, NOT IMPLEMENTED
 - JSON Lens;
-- Nano 402;
+- Nano 402 payment gate;
 - health endpoint;
-- testes;
-- deploy;
-- monitoramento.
+- tests;
+- deployment;
+- monitoring.
 
-### BLOQUEIOS/DECISÕES ABERTAS
-- confirmar endereço Nano público do operador;
-- escolher runtime/deploy;
-- confirmar integração/facilitator x402 Nano;
-- fixar preço definitivo;
-- fixar limites de payload;
-- definir licença.
+### OPEN DECISIONS
+- public Nano receiving address;
+- runtime/deployment provider;
+- Nano x402 integration/facilitator;
+- final price;
+- payload limits;
+- license.
 
-## Referência técnica já identificada
+## Known External Acceptance Criteria
+Pursekeeper first stage:
+- unpaid request returns HTTP 402;
+- identifies Nano/mainnet;
+- provides price and payment address;
+- first paid call succeeds;
+- delivers a genuinely useful result;
+- service remains online.
 
-A implementação de referência estudada anteriormente usa `x402nano/exact`, rede `nano:mainnet`, Payment Requirements em resposta HTTP 402, prova de pagamento no request, verificação e settlement antes da resposta paga. Isso deve ser revalidado durante a especificação/implementação; não considerar integração pronta.
+Second stage:
+- 14 days of reachability;
+- payment-taking code remains public in its own repository.
 
-## Próximo passo EXATO
+## Exact Next Step
+**Block 003 — V1 Technical Specification.**
 
-**Bloco 002 — Especificação técnica da V1.**
+Before writing application code:
+1. freeze JSON Lens input/output contract;
+2. freeze error schema and limits;
+3. validate Nano x402 approach;
+4. select runtime/deployment;
+5. confirm required public parameters;
+6. produce an implementation and test plan.
 
-Antes de escrever código:
-1. fechar contrato de entrada/saída do JSON Lens;
-2. fechar formato de erros e limites;
-3. validar abordagem x402 Nano;
-4. decidir runtime/deploy;
-5. confirmar parâmetros públicos necessários;
-6. produzir plano de implementação/testes.
+## Resume Instruction
+Start with this file, then read `docs/ROADMAP.md` and `docs/DECISIONS.md`. Verify actual repository state before acting. Do not treat planned work as completed.
 
-## Instrução para qualquer novo chat/agente
+## Block Closure Rule
+Before closing any future block:
+1. update roadmap;
+2. record new decisions;
+3. record tests/results;
+4. update THIS checkpoint;
+5. create a historical snapshot for material milestones;
+6. leave one exact next step.
 
-Comece por este arquivo. Depois leia `docs/ROADMAP.md`, `docs/DECISIONS.md` e os documentos ligados à tarefa atual. Verifique o estado real do repositório antes de executar.
-
-Não pule diretamente para deploy ou submissão ao Pursekeeper.
-
-## Regra de fechamento de bloco
-
-Antes de encerrar qualquer bloco futuro:
-1. atualizar o roadmap;
-2. registrar decisões novas;
-3. registrar testes/resultados;
-4. atualizar ESTE checkpoint;
-5. criar snapshot histórico se houver marco material;
-6. deixar um único próximo passo claro.
-
-Se o checkpoint não foi atualizado, o bloco não está formalmente encerrado.
+If the checkpoint was not updated, the block is not formally closed.

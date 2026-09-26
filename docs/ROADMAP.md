@@ -1,71 +1,71 @@
 # Roadmap
 
-## Regra operacional
+## Operating Rule
+**Every work block ends by updating `docs/checkpoints/CHECKPOINT_CURRENT.md`.**  
+When a material milestone is reached, also create a historical snapshot under `docs/checkpoints/history/`.
 
-**Todo bloco de trabalho termina com atualização de `docs/checkpoints/CHECKPOINT_CURRENT.md`.**  
-Se houver mudança material, criar também snapshot histórico em `docs/checkpoints/history/`.
+## Phase 0 — Documentation Foundation
+- [x] Create public repository.
+- [x] Initial README.
+- [x] Initial whitepaper.
+- [x] Initial architecture.
+- [x] Document Pursekeeper criteria.
+- [x] Continuity rules.
+- [x] Initial security and operations documents.
+- [x] Current checkpoint.
+- [x] Establish English as the official project language.
+- [ ] Approve technical specification before implementation.
 
-## Fase 0 — Fundação documental
-- [x] Criar repositório público.
-- [x] README inicial.
-- [x] Whitepaper inicial.
-- [x] Arquitetura inicial.
-- [x] Critérios do Pursekeeper documentados.
-- [x] Regras de continuidade.
-- [x] Segurança e operação inicial.
-- [x] Checkpoint corrente.
-- [ ] Aprovar especificação técnica antes da implementação.
+## Phase 1 — Specification
+- [ ] Freeze V1 HTTP contract.
+- [ ] Confirm Nano x402 library/protocol.
+- [ ] Confirm facilitator.
+- [ ] Retrieve/confirm operator public Nano address.
+- [ ] Freeze initial price.
+- [ ] Select runtime/deployment.
+- [ ] Define payload limits and error schema.
+- [ ] Produce testable implementation plan.
 
-## Fase 1 — Especificação
-- [ ] Fixar contrato HTTP da V1.
-- [ ] Confirmar biblioteca/protocolo x402 Nano.
-- [ ] Confirmar facilitator.
-- [ ] Recuperar/confirmar endereço Nano público do operador.
-- [ ] Fixar preço inicial.
-- [ ] Escolher runtime/deploy.
-- [ ] Definir limites de payload e formato de erros.
-- [ ] Criar plano de implementação testável.
-
-## Fase 2 — Núcleo JSON Lens
-- [ ] Canonicalização determinística.
+## Phase 2 — JSON Lens Core
+- [ ] Deterministic canonicalization.
 - [ ] SHA-256.
-- [ ] Métricas estruturais.
-- [ ] Mapa de paths/tipos.
-- [ ] Diff before/after.
-- [ ] Testes unitários e casos-limite.
+- [ ] Structural metrics.
+- [ ] Path/type map.
+- [ ] Before/after diff.
+- [ ] Unit tests and edge cases.
 
-## Fase 3 — Nano 402
-- [ ] Desafio não pago retorna 402 correto.
-- [ ] Incluir network, price e payTo.
-- [ ] Decodificar prova de pagamento.
-- [ ] Verificar pagamento.
-- [ ] Settlement.
-- [ ] Entregar resultado apenas após sucesso.
-- [ ] Testes de falha/replay conforme suporte do protocolo.
+## Phase 3 — Nano 402
+- [ ] Unpaid request returns correct 402 challenge.
+- [ ] Include network, price, and payTo.
+- [ ] Decode payment proof.
+- [ ] Verify payment.
+- [ ] Settle payment.
+- [ ] Deliver result only after success.
+- [ ] Failure/replay tests where supported by protocol.
 
-## Fase 4 — Serviço público
+## Phase 4 — Public Service
 - [ ] `POST /api/lens`.
 - [ ] `GET /health`.
-- [ ] Deploy HTTPS.
-- [ ] Teste externo do 402.
-- [ ] Verificação de logs e segurança.
+- [ ] HTTPS deployment.
+- [ ] External 402 test.
+- [ ] Logging/security review.
 
-## Fase 5 — Pursekeeper: 10 XNO
-- [ ] Enviar endpoint ao Pursekeeper.
-- [ ] Pursekeeper confirma desafio 402.
-- [ ] Primeira chamada paga entrega resultado real.
-- [ ] Confirmar serviço listado/online.
-- [ ] Registrar evidência do crédito/prepagamento.
+## Phase 5 — Pursekeeper: 10 XNO
+- [ ] Submit endpoint to Pursekeeper.
+- [ ] Pursekeeper confirms 402 challenge.
+- [ ] First paid call delivers a real result.
+- [ ] Confirm listing/online state.
+- [ ] Record evidence of credit/prepayment.
 
-## Fase 6 — Janela de 14 dias / 15 XNO
-- [ ] Código de pagamento permanece público.
-- [ ] Endpoint permanece alcançável.
-- [ ] Registrar início da janela.
-- [ ] Acompanhar incidentes.
-- [ ] Confirmar conclusão dos 14 dias.
-- [ ] Registrar segunda parcela.
+## Phase 6 — 14-Day Window / +15 XNO
+- [ ] Payment-taking code remains public.
+- [ ] Endpoint remains reachable.
+- [ ] Record start of window.
+- [ ] Track incidents.
+- [ ] Confirm 14-day completion.
+- [ ] Record second tranche.
 
-## Fase 7 — Pós-validação
-- [ ] Tag/release V1.
-- [ ] Relatório final.
-- [ ] Avaliar novos consumidores e extensões sem ampliar riscos desnecessariamente.
+## Phase 7 — Post-validation
+- [ ] V1 tag/release.
+- [ ] Final report.
+- [ ] Evaluate additional consumers and extensions without unnecessary risk expansion.

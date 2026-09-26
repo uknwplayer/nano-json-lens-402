@@ -1,34 +1,29 @@
-# Segurança
+# Security
 
-## Princípios
+## Principles
+- Never store a Nano seed or private key.
+- Never commit deployment or facilitator credentials.
+- The Nano receiving address is public and may be configured separately.
+- Validate payloads before processing.
+- Enforce size and depth limits.
+- Never execute client-submitted code.
+- Do not fetch client-provided URLs in V1.
+- Do not use `eval`.
+- Avoid persisting submitted documents.
+- Sanitize logs.
 
-- Nunca armazenar seed/chave privada Nano.
-- Nunca commitar tokens de deploy ou facilitator.
-- O endereço Nano de recebimento é público e pode ser configurado separadamente.
-- Validar payload antes de processamento.
-- Aplicar limite de tamanho e profundidade.
-- Não executar código enviado pelo cliente.
-- Não buscar URLs fornecidas pelo cliente na V1.
-- Não usar eval.
-- Evitar persistir documentos recebidos.
-- Sanitizar logs.
+## Payment Gate
+The paid result must not be delivered before successful payment verification. Payment failures must be explicit and must never silently fall back to free access.
 
-## Payment gate
+## Availability
+The health endpoint must be inexpensive and independent of heavy processing. The 14-day requirement makes deployment and configuration failures operationally important.
 
-O resultado pago não deve ser entregue antes da verificação bem-sucedida. Falhas de pagamento devem ser explícitas e não devem cair silenciosamente em modo gratuito.
+## Dependencies
+Before release:
+- pin versions appropriately;
+- review critical transitive dependencies;
+- run tests;
+- avoid unnecessary dependencies.
 
-## Disponibilidade
-
-O health check deve ser barato e independente da lógica pesada. A janela de 14 dias exige atenção a falhas de deploy/configuração.
-
-## Dependências
-
-Antes da release:
-- fixar versões adequadamente;
-- revisar dependências transitivas críticas;
-- executar testes;
-- evitar dependências desnecessárias.
-
-## Dados
-
-O serviço deve ser tratado como processador transitório: recebe JSON, calcula a resposta e descarta o conteúdo, salvo mudança futura explicitamente documentada.
+## Data Handling
+Treat the service as a transient processor: receive JSON, calculate the response, and discard the submitted content unless a future design explicitly changes this rule.
