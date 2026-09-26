@@ -31,12 +31,9 @@ export class MemoryPaymentStateStore implements PaymentStateStore {
   ): Promise<PaymentClaimResult> {
     const existing = this.payments.get(paymentIdentity);
     if (existing !== undefined) {
-      if (existing.requestId !== requestId) {
-        return { status: 'conflict' };
-      }
+      if (existing.requestId !== requestId) return { status: 'conflict' };
       return { status: 'existing', operationId: existing.operationId };
     }
-
     this.payments.set(paymentIdentity, { requestId, operationId });
     this.operations.set(operationId, { state: 'unverified' });
     return { status: 'claimed' };
@@ -46,17 +43,18 @@ export class MemoryPaymentStateStore implements PaymentStateStore {
     return this.operations.get(operationId)?.state;
   }
 
-  async compareAndSetState(
-    operationId: string,
-    expected: PaymentState,
-    next: PaymentState,
-  ): Promise<boolean> {
+  async compareAndSetState(operationId: string, expected: PaymentState, next: PaymentState): Promise<boolean> {
     const record = this.operations.get(operationId);
-    if (record === undefined || record.state !== expected) {
-      return false;
-    }
-
+    if (record === undefined || record.state !== expected) return false;
     record.state = next;
+    return true;
+  }
+
+  async confirmSettlement(operationId: string, receipt: SettlementReceipt): Promise<boolean> {
+    const record = this.operations.get(operationId);
+    if (record === undefined || record.state !== 'settling') return false;
+    record.state = 'settled';
+    record.receipt = Object.freeze({ ...receipt });
     return true;
   }
 
