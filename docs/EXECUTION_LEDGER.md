@@ -56,3 +56,31 @@ TDD RED evidence: test/payment.test.ts was added before production payment code.
 Task 5 is IN PROGRESS, not complete. No real payment, facilitator write, public deployment, or 14-day window has started.
 
 Exact next step: implement the minimal src/payment.ts adapter and pin @x402nano/exact 0.3.0 plus compatible @x402/core, then run the focused/full suite in CI. Add explicit concurrency/replay tests before declaring Task 5 complete.
+
+## Block 009 / Task 5 — stable Nano block identity helper
+Branch: task5-production-nano-payment.
+
+Reconciled the stale Block 008 checkpoint against the actual branch, which had already advanced through payment gate implementation, replay-state storage, idempotent confirmed-settlement recovery, and settlement-uncertainty fail-closed handling.
+
+TDD RED evidence: commit 51091f469b7f09a2c4585521f8c012d0827baf9c added tests requiring a stable Nano block payment identity independent of envelope-only changes. Implemented deriveNanoBlockPaymentIdentity in src/payment/identity.ts.
+
+Ruling: primary local replay identity is derived from validated Nano state-block material (`type`, `account`, `previous`, `representative`, `balance`, `link`) and excludes envelope metadata, signature, PoW, and derived presentation fields. It is a service-local SHA-256 identity, not a claim to be Nano's canonical block hash. Cost if wrong: incompatible block formats would fail closed until explicitly supported.
+
+Evidence: GitHub Actions run 36268358967 passed for commit 778a4a52c6d5206dd05902bbfecfb9125eb5d3e0.
+
+Task 5 remains IN PROGRESS. No real payment, live facilitator write, deployment, or 14-day window started.
+
+## Block 010 / Task 5 — stable replay identity enforced by PaymentGate
+Branch: task5-production-nano-payment.
+
+TDD RED evidence: commit 820edbc63d19900fe0e4a4d68030704a45551571 added a regression test proving equivalent envelopes for one Nano block must not settle twice. GitHub Actions run 36269161823 produced the intended RED: 64 tests total, 63 passed, 1 failed; the new assertion observed 2 settlements instead of 1.
+
+Before production code changed, payment fixtures were upgraded to a structurally valid Nano state block and the settlement-unknown operation-id expectation was migrated to the stable block identity.
+
+Implemented the gate change in commit 5ff6252d9545b7fdea693d822eadf5572e574a80: stateful replay claims now use deriveNanoBlockPaymentIdentity(payload) rather than digesting serialized proof bytes. Replay-protected flows fail closed if that identity cannot be derived.
+
+Ruling: equivalent proof envelopes for the same Nano block must share one local payment claim and one confirmed receipt. Raw serialized proof bytes are not a security identity. Facilitator verification and Nano settlement remain authoritative. Cost if wrong: unsupported Nano block representations are rejected instead of silently falling back to a weaker replay key.
+
+Verification: GitHub Actions run 36269262669 completed successfully; npm test passed 64/64, npm run typecheck passed, and npm ci reported 0 vulnerabilities.
+
+Task 5 remains IN PROGRESS. Exact next step is production dependency pinning and construction of the real @x402nano/exact resourceServer adapter under tests. No real payment or live facilitator write occurred in Blocks 009–010.
