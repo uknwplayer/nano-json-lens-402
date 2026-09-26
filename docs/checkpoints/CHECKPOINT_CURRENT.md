@@ -1,37 +1,33 @@
 # CURRENT CHECKPOINT — Nano JSON Lens 402
 
 **Date:** 2026-09-26
-**Block:** 015 — Cloudflare Worker challenge-only runtime + bundle GREEN
-**Overall state:** TASK 5 IN PROGRESS / WORKER BUNDLE GREEN / CHALLENGE-ONLY RUNTIME GREEN / REAL D1 PROVISIONING + DEPLOYMENT PENDING / LIVE VERIFY-SETTLE NOT STARTED / MAIN UNTOUCHED
+**Block:** 016 — guarded Cloudflare D1 provisioning automation GREEN / remote authentication pending
+**Overall state:** TASK 5 IN PROGRESS / PROVISIONING AUTOMATION GREEN / REAL D1 PROVISIONING WAITING ON OPERATOR AUTH / WORKER NOT DEPLOYED / LIVE VERIFY-SETTLE NOT STARTED / MAIN UNTOUCHED
 
 ## Completed in this block
-- Added implementation plan `docs/superpowers/plans/2026-09-26-cloudflare-worker-runtime.md`.
-- Added TDD coverage for the Cloudflare Worker runtime before implementation.
-- Worker runtime RED evidence: commit `cec9527df7efbad669800b8665b6ba8f298c3ff2`, Actions run `36273945075`: all 78 pre-existing tests passed and the only failure was `ERR_MODULE_NOT_FOUND` for `src/worker-runtime.ts`.
-- Corrected one test fixture that had accidentally included a query string even though the existing `/api/lens` contract rejects query parameters before the payment gate.
-- Added `src/worker-runtime.ts`.
-- `GET /health` remains independent of D1 and x402 initialization.
-- `/api/lens` requires HTTPS and a valid `PAYMENT_DB` binding; missing storage fails closed before bootstrap.
-- Production resource URLs are normalized to the incoming HTTPS origin plus the fixed `/api/lens` path.
-- The runtime can be held in challenge-only mode so submitted proofs are rejected before facilitator verify/settle.
-- Added a TDD production Worker entrypoint contract.
-- Worker entrypoint RED evidence: commit `611745110056db1cdfd3f1b3dbfcb8621889c9fa`, Actions run `36274072390`: pre-existing/runtime tests remained green and the new import failed exactly because `src/worker.ts` did not exist.
-- Added `src/worker.ts` with fixed approved facilitator/payTo/price configuration.
-- Added source-controlled `PAID_TRAFFIC_ENABLED = false`; account/environment configuration cannot enable paid traffic during this rollout stage.
-- Initial entrypoint CI correctly exposed a latent TypeScript contract mismatch between the generic local `ResourceServerLike` and the concrete pinned `x402ResourceServer`. Runtime tests were already green; typecheck failed.
-- Systematic root-cause analysis showed that payment configuration and resource metadata were being represented too broadly in the local adapter contract and that the concrete SDK has stricter `ResourceConfig`, `ResourceInfo`, `PaymentRequirements`, and `PaymentPayload` types.
-- Refactored the local core into explicit `PaymentResourceConfig` and `PaymentResourceInfo` contracts and isolated the concrete pinned x402 SDK behind `src/payment/production-resource-server.ts`.
-- The production boundary now validates/converts requirements, resource metadata, decoded payment payloads, and facilitator results instead of spreading vendor protocol types through the generic payment core.
-- Adapter GREEN evidence: commit `e36bb26ddf2cf20ca9dc4a0bf20a2b39eff7517d`, Actions run `36274568426`: 84 tests, typecheck, dependency-tree validation, and production audit all passed.
-- Added `wrangler.jsonc` using Worker entrypoint `src/worker.ts`, compatibility date `2026-09-26`, D1 binding `PAYMENT_DB`, and migration directory `migrations`.
-- The committed D1 `database_id` is intentionally `00000000-0000-0000-0000-000000000000`; it is a provisioning placeholder, not a real database ID.
-- Added exact Wrangler bundle validation to Task 5 CI: `npx --yes wrangler@4.137.0 deploy --dry-run`.
-- Bundle evidence: commit `98752af61ca7a317cd29a7c1a250d5ce66d13d60`, Actions run `36274618113`, job `108494824442`.
-- That run passed 84/84 tests, typecheck, Wrangler dry-run, full dependency-tree validation, and production audit with 0 vulnerabilities.
-- Wrangler successfully bundled the actual Worker entrypoint and recognized `env.PAYMENT_DB` as a D1 Database binding. Reported dry-run bundle size was 2067.29 KiB upload / 287.95 KiB gzip.
-- Updated Operations, Security, Roadmap, implementation plan, and continuity documents for the challenge-only rollout.
+- Confirmed that no Cloudflare account connector is available in this ChatGPT session and that the connected GitHub app does not expose repository Actions secrets.
+- Ruling: Cloudflare credentials must never be pasted into chat, source files, workflow inputs, issues, commits, or logs. The remote step must use GitHub Actions Secrets.
+- Added implementation plan `docs/superpowers/plans/2026-09-26-cloudflare-d1-provisioning.md`.
+- Added `test/cloudflare-provisioning.test.ts` before implementation.
+- TDD RED evidence: commit `690bfd18e1aca4cbf196828210d820c722b16a72`, Actions run `36275355302`, job `108496925525`: 85 tests total, 84 passed, exactly one failed with `ERR_MODULE_NOT_FOUND` because `scripts/cloudflare/d1-config.ts` did not exist.
+- Added `scripts/cloudflare/d1-config.ts` using `jsonc-parser` so the provisioning workflow can preserve comments while changing only the expected D1 UUID.
+- The helper requires exactly one `PAYMENT_DB` / `nano-json-lens-402-payment-state` pair, accepts only a valid non-placeholder UUID, permits zero-placeholder -> real UUID and same-ID idempotency, and refuses rebinding one real UUID to another.
+- GREEN evidence after helper + plan: commit `7c488b260b1693e7b79b31953baf30d85b0a8b57`, Actions run `36275413118`, job `108497080943`: tests, typecheck, Wrangler dry-run, dependency-tree validation, and production audit passed.
+- Added manual workflow `.github/workflows/cloudflare-d1-provision.yml`.
+- The workflow runs only by `workflow_dispatch`, requires literal `PROVISION_D1`, and refuses execution outside `task5-production-nano-payment`.
+- Required GitHub Actions secrets are `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_D1_API_TOKEN`.
+- The workflow verifies `PAID_TRAFFIC_ENABLED === false` before remote mutation.
+- It uses exact Wrangler `4.137.0`, reuses exactly one intended D1 database by name if present, otherwise creates it, validates its UUID, and updates only the expected D1 binding through the tested helper.
+- It lists/applies the committed remote migration, validates the `payment_operations` table, and performs a synthetic non-payment write/read/CAS/read/delete probe.
+- Synthetic probe cleanup is attempted on failure and success paths.
+- The workflow refuses to replace a different already-real D1 UUID and refuses to push its public UUID commit if the branch moved during execution.
+- The workflow does not deploy the Worker and does not call Pursekeeper verify/settle.
+- Workflow implementation commit `b1f62ec48ba6c2927182b70fbe64ebc6228271ed` passed normal Task 5 CI in Actions run `36275520755`.
+- Added `test/cloudflare-provision-workflow.test.ts` to lock manual-only, explicit-confirmation, isolated-branch, dedicated-secret, challenge-only, migration, remote-probe, and no-deploy guardrails.
+- Updated Operations, Security, Roadmap, provisioning plan, and historical checkpoint `docs/checkpoints/history/2026-09-26_016.md`.
+- The cumulative `docs/EXECUTION_LEDGER.md` currently remains through Block 015; checkpoint 016 is the authoritative Block 016 execution record until that cumulative document is appended/compacted in a later documentation-only maintenance pass.
 
-## Active payment rulings
+## Active payment and rollout rulings
 - `requestDigest` is local service metadata, not cryptographic binding between Nano payment and submitted JSON.
 - Stable replay identity is derived from validated Nano state-block material, not serialized envelope bytes.
 - Facilitator verification and Nano settlement remain authoritative for payment validity/finality.
@@ -41,10 +37,10 @@
 - Settlement confirmation must atomically persist both `settled` state and bounded receipt.
 - Stale or ambiguous settlement writes fail closed; do not add automatic settlement write retries.
 - `PAID_TRAFFIC_ENABLED` remains source-controlled `false`; no environment setting can bypass this rollout gate.
-- A submitted proof in challenge-only mode must never reach facilitator verify/settle.
-- `/api/lens` requires HTTPS and valid durable payment-state storage; missing D1 state fails closed.
-- `GET /health` remains independent from payment infrastructure.
-- Concrete x402 SDK types are trusted only after explicit validation/conversion at the production adapter boundary.
+- Provisioning automation must not deploy the Worker or invoke payment verify/settle.
+- Cloudflare credentials live only in GitHub Actions Secrets; do not copy them into chat or repository content.
+- Prefer a dedicated least-privilege D1 token for the intended Cloudflare account.
+- A real D1 UUID may be committed because it is a public configuration identifier, but only after migration + remote synthetic state validation succeeds.
 - No Nano seed/private key is stored or required.
 
 ## Deployment target and configuration
@@ -55,12 +51,11 @@
 - Migration: `migrations/0001_payment_state.sql`.
 - Production store: `src/payment/d1-store.ts`.
 - Wrangler config: `wrangler.jsonc`.
-- D1 binding name: `PAYMENT_DB`.
+- D1 binding: `PAYMENT_DB`.
 - D1 database name: `nano-json-lens-402-payment-state`.
-- Current `database_id`: zero UUID placeholder only; replace after real provisioning.
-- Wrangler CI version: `4.137.0`.
+- Provisioning workflow: `.github/workflows/cloudflare-d1-provision.yml`.
+- Wrangler version: `4.137.0`.
 - Compatibility date: `2026-09-26`.
-- Provider free-tier limits must be rechecked immediately before actual deployment because they can change.
 
 ## Payment parameters
 - Network: `nano:mainnet`.
@@ -71,19 +66,36 @@
 - Facilitator: `https://facilitator.pursekeeper.dev`.
 - Public payTo: `nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt`.
 
-## Scope of evidence
-The Cloudflare Worker source, runtime composition, D1 binding declaration, and deploy bundle have been validated without deploying them. The current CI dry-run proves bundling/configuration compatibility only. **No real Cloudflare D1 database has been created, no real D1 database ID has been committed, no migration has been applied remotely, and no Worker has been deployed.** No payment proof has reached the facilitator. No live verify or settle call was made. No Nano transfer occurred. The 14-day reachability window has not started.
+## Required operator action — do not paste secret values into ChatGPT
+1. In the intended Cloudflare account, identify the **Account ID**.
+2. Create a dedicated least-privilege Cloudflare API token that can perform the D1 create/list/migration/query operations needed by this provisioning workflow for that account.
+3. In GitHub repository settings, create two **Actions repository secrets**:
+   - `CLOUDFLARE_ACCOUNT_ID`
+   - `CLOUDFLARE_D1_API_TOKEN`
+4. Go to **Actions → Provision Cloudflare D1 → Run workflow**.
+5. Select branch `task5-production-nano-payment`.
+6. Enter confirmation `PROVISION_D1` and run it.
+7. Return to the assistant with `Feito`, `Próximo`, or the workflow result. The assistant should inspect the run directly through GitHub before accepting any remote state claim.
 
-## Exact next step
-Continue Task 5 on `task5-production-nano-payment`:
-1. authenticate to the intended Cloudflare account and create `nano-json-lens-402-payment-state` using the pinned Wrangler version;
-2. replace the zero UUID placeholder in `wrangler.jsonc` with the returned real D1 `database_id`;
-3. list and apply `migrations/0001_payment_state.sql` to the remote D1 database;
-4. perform controlled **non-payment** write/read/CAS validation against the real `PAYMENT_DB` binding;
-5. deploy the Worker while `PAID_TRAFFIC_ENABLED === false`;
-6. externally verify `GET /health` and an unpaid `POST /api/lens` 402;
-7. rerun security/CI evidence after the real runtime integration;
-8. only after all of the above are independently GREEN may a future block consider the first controlled live verify/settle payment test.
+## Scope of evidence / explicit non-claims
+The provisioning workflow and its guardrails have been implemented and normal CI has passed on the workflow implementation commit. **At this checkpoint no successful manual Cloudflare provisioning run has been observed.** Therefore:
+- no real Cloudflare D1 database is claimed as created;
+- no real D1 UUID is claimed as committed;
+- no remote migration is claimed as applied;
+- no remote synthetic D1 probe is claimed as passed;
+- no Worker has been deployed;
+- no payment proof has reached the facilitator;
+- no live verify or settle call was made;
+- no Nano transfer occurred;
+- the Pursekeeper 14-day reachability window has not started.
+
+## Exact next step after operator authentication
+1. inspect the manual `Provision Cloudflare D1` Actions run;
+2. verify database creation/reuse evidence and the committed UUID;
+3. verify migration + synthetic write/read/CAS cleanup evidence;
+4. run fresh full Task 5 CI on the resulting branch head;
+5. only after those checks are GREEN prepare a separate challenge-only Worker deployment block;
+6. keep `PAID_TRAFFIC_ENABLED === false` during deployment and external health/402 validation.
 
 ## Continuity
-All repository artifacts remain in English; private operator conversation remains in Portuguese. Keep work blocks approximately 15 minutes and update this checkpoint at every block closure. `main` remains untouched until isolated Task 5 work is verified and explicitly integrated. Do not claim a deployed D1 service, deployed Worker, Pursekeeper paid-call acceptance, or start of the 14-day window from dry-run bundle evidence alone.
+All repository artifacts remain in English; private operator conversation remains in Portuguese. Keep work blocks approximately 15 minutes and update this checkpoint at every block closure. `main` remains untouched until isolated Task 5 work is verified and explicitly integrated. Do not claim a remote D1, deployed Worker, Pursekeeper paid-call acceptance, or start of the 14-day window from provisioning automation alone.
