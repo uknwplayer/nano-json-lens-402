@@ -1,3 +1,4 @@
+import type { SettlementReceipt } from '../server.ts';
 import type { PaymentState } from './state.ts';
 
 export type PaymentClaimResult =
@@ -21,4 +22,7 @@ export interface PaymentStateStore {
     expected: PaymentState,
     next: PaymentState,
   ): Promise<boolean>;
+
+  saveSettlementReceipt(operationId: string, receipt: SettlementReceipt): Promise<void>;
+  getSettlementReceipt(operationId: string): Promise<SettlementReceipt | undefined>;
 }
