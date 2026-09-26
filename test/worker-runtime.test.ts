@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createPaymentBootstrap } from '../src/payment/bootstrap.ts';
 import { createCloudflareWorkerRuntime } from '../src/worker-runtime.ts';
+import workerEntrypoint, { PAID_TRAFFIC_ENABLED } from '../src/worker.ts';
 import { SQLiteD1Database } from './support/sqlite-d1.ts';
 
 const payTo = 'nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt';
@@ -77,6 +78,11 @@ function lensRequest(headers: Record<string, string> = {}): Request {
     body,
   });
 }
+
+test('production Worker entrypoint is explicitly challenge-only', () => {
+  assert.equal(PAID_TRAFFIC_ENABLED, false);
+  assert.equal(typeof workerEntrypoint.fetch, 'function');
+});
 
 test('health stays independent of payment bootstrap and D1', async () => {
   const { worker, resourceServer } = runtime();
