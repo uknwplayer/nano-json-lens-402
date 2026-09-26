@@ -71,7 +71,7 @@ function runtime(resourceServer = fakeResourceServer()) {
 const body = JSON.stringify({ document: { hello: 'world' } });
 
 function lensRequest(headers: Record<string, string> = {}): Request {
-  return new Request('https://nano-json-lens-402.example/api/lens?ignored=no', {
+  return new Request('https://nano-json-lens-402.example/api/lens', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...headers },
     body,
