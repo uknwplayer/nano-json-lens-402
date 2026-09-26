@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Blocks 004 and 011–014 established protocol discovery, pinned package integration, fail-closed bootstrap, the real 402 path, and the deployment/state architecture. Cloudflare account-side provisioning and deployment remain pending.
+Blocks 004 and 011–015 established protocol discovery, pinned package integration, fail-closed bootstrap, the real unpaid 402 path, D1 persistence architecture, and a challenge-only Cloudflare Worker bundle. Cloudflare account-side provisioning and deployment remain pending.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -54,6 +54,7 @@ Blocks 004 and 011–014 established protocol discovery, pinned package integrat
 - [x] Stable replay identity derived from Nano state-block material rather than serialized proof bytes.
 - [x] Pin `@x402nano/exact` 0.3.0 and compatible `@x402/core` dependency tree.
 - [x] Construct and test the production `resourceServer` adapter offline.
+- [x] Isolate the concrete x402 SDK behind a validated production adapter boundary.
 - [x] Add and test explicit fail-closed facilitator initialization/bootstrap boundary.
 - [x] Validate live read-only Pursekeeper supported synchronization through the pinned production bootstrap.
 - [x] Wire only a ready production bootstrap into the production Nano `PaymentGate` composition.
@@ -64,19 +65,25 @@ Blocks 004 and 011–014 established protocol discovery, pinned package integrat
 - [x] Implement and test a `productionSafe` D1 `PaymentStateStore`.
 - [x] Prove SQL replay/settlement state and receipt survive closing/reopening the test database.
 - [x] Prove production composition accepts the D1 store while continuing to reject memory state.
+- [x] Add the challenge-only Cloudflare Worker runtime around ready bootstrap + D1 composition.
+- [x] Hard-disable paid traffic in source while preserving unpaid production 402 challenge generation.
 - [ ] Provision the real Cloudflare D1 database and apply migration `0001_payment_state.sql`.
-- [ ] Bind D1 to the Worker runtime and validate the adapter against the real remote binding.
-- [ ] Wire the deployed store into the payment-taking production startup path.
+- [ ] Validate write/read/CAS against the real remote D1 binding.
+- [ ] Enable payment-taking startup only after deployed state/runtime prerequisites are independently GREEN.
 
-Block 014 selected Cloudflare Workers Free + D1, removed the settlement state/receipt crash gap with `confirmSettlement`, implemented the D1 store and migration, and reached 78/78 local tests GREEN. The D1 contract covers unique claims, rebinding conflict, conditional CAS, atomic settlement confirmation, receipt recovery, and reopen durability. This is not yet a deployed Cloudflare database. Live `verify` and `settle` have still not been called.
+Block 014 selected Cloudflare Workers Free + D1, removed the settlement state/receipt crash gap with `confirmSettlement`, implemented the D1 store and migration, and reached 78/78 tests GREEN. Block 015 added the Worker runtime/entrypoint, made health independent from payment infrastructure, hard-disabled paid traffic in source, isolated the pinned x402 SDK behind a validated adapter, and proved the Worker bundle with Wrangler 4.137.0 dry-run. The current suite is 84/84 GREEN. No real Cloudflare D1 database or Worker has been provisioned or deployed, and live `verify`/`settle` have still not been called.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
-- [ ] Add the Cloudflare Worker entrypoint/configuration and real D1 binding.
-- [ ] Provision/apply D1 migration.
+- [x] Add Cloudflare Worker runtime/entrypoint and D1 binding contract.
+- [x] Add Wrangler configuration with an intentionally non-production placeholder D1 ID.
+- [x] Prove the current Worker bundle with `wrangler deploy --dry-run`.
+- [ ] Provision/apply the real remote D1 migration.
+- [ ] Validate the real D1 binding before deployment.
+- [ ] Deploy challenge-only Worker.
 - [ ] `POST /api/lens` live.
 - [ ] `GET /health` live.
-- [ ] HTTPS deployment.
+- [ ] HTTPS deployment externally verified.
 - [ ] External 402 test against the deployed endpoint.
 - [ ] Logging/security review.
 
