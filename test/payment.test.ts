@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createNanoPaymentGate } from '../src/payment.ts';
+import { deriveOperationId, digestPaymentEvidence } from '../src/payment/identity.ts';
 import { MemoryPaymentStateStore } from '../src/payment/memory-store.ts';
 import type { PaymentContext } from '../src/server.ts';
 
@@ -189,5 +190,20 @@ test('retry after confirmed settlement is idempotent and never settles twice', a
 
   assert.equal(first.settled, true);
   assert.equal(second.settled, true);
+  assert.equal(fake.calls.filter(call => call === 'settle').length, 1);
+});
+
+test('ambiguous settlement becomes settlement_unknown and retry cannot settle again', async () => {
+  const stateStore = new MemoryPaymentStateStore();
+  const fake = fakeServer({ throwSettle: true });
+  const { gate } = setup(fake, stateStore);
+  const paymentProof = proof();
+  const operationId = deriveOperationId(context.requestDigest, digestPaymentEvidence(paymentProof));
+
+  await assert.rejects(() => gate.verifyAndSettle(context, paymentProof));
+  assert.equal(await stateStore.getState(operationId), 'settlement_unknown');
+
+  const retry = await gate.verifyAndSettle(context, paymentProof);
+  assert.deepEqual(retry, { settled: false });
   assert.equal(fake.calls.filter(call => call === 'settle').length, 1);
 });
