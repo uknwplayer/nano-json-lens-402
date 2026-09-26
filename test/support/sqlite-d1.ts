@@ -5,23 +5,27 @@ export interface D1RunResultLike {
 }
 
 class SQLiteD1Statement {
-  constructor(
-    private readonly database: DatabaseSync,
-    private readonly sql: string,
-    private readonly values: unknown[] = [],
-  ) {}
+  private readonly database: DatabaseSync;
+  private readonly sql: string;
+  private readonly values: unknown[];
+
+  constructor(database: DatabaseSync, sql: string, values: unknown[] = []) {
+    this.database = database;
+    this.sql = sql;
+    this.values = values;
+  }
 
   bind(...values: unknown[]): SQLiteD1Statement {
     return new SQLiteD1Statement(this.database, this.sql, values);
   }
 
   async run(): Promise<D1RunResultLike> {
-    const result = this.database.prepare(this.sql).run(...this.values as never[]);
+    const result = this.database.prepare(this.sql).run(...this.values as string[]);
     return { meta: { changes: Number(result.changes) } };
   }
 
   async first<T = Record<string, unknown>>(): Promise<T | null> {
-    const row = this.database.prepare(this.sql).get(...this.values as never[]);
+    const row = this.database.prepare(this.sql).get(...this.values as string[]);
     return row === undefined ? null : row as T;
   }
 }
