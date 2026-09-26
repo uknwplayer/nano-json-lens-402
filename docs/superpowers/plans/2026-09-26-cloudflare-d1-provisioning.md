@@ -29,34 +29,37 @@ Cloudflare documents API token + account ID authentication for non-interactive C
 ## Task 1 — Safe config finalization contract
 - [x] Add `test/cloudflare-provisioning.test.ts` first.
 - [x] Verify RED because `scripts/cloudflare/d1-config.ts` does not exist.
-- [ ] Implement a JSONC-preserving helper that accepts only one expected binding/database pair.
-- [ ] Accept only a valid non-placeholder UUID.
-- [ ] Permit zero-placeholder -> real ID and same-ID idempotency only.
-- [ ] Reject rebinding from one real ID to another.
-- [ ] Run full CI GREEN.
+- [x] Implement a JSONC-preserving helper that accepts only one expected binding/database pair.
+- [x] Accept only a valid non-placeholder UUID.
+- [x] Permit zero-placeholder -> real ID and same-ID idempotency only.
+- [x] Reject rebinding from one real ID to another.
+- [x] Run full CI GREEN.
 
 ## Task 2 — Manual remote provisioning workflow
 **Create:** `.github/workflows/cloudflare-d1-provision.yml`
 
-- [ ] Trigger only via `workflow_dispatch`.
-- [ ] Require `confirmation == PROVISION_D1`.
-- [ ] Fail before network mutation when required secrets are absent.
-- [ ] Use Node 24 and exact `wrangler@4.137.0`.
-- [ ] List D1 databases as JSON and reuse the exact intended name when present.
-- [ ] Create the intended D1 database only when absent.
-- [ ] Read the authoritative UUID with `wrangler d1 info --json`.
-- [ ] Finalize `wrangler.jsonc` through the tested helper.
-- [ ] List and apply remote migrations.
-- [ ] Verify the migrated `payment_operations` table exists.
-- [ ] Perform a synthetic non-payment insert/read/CAS/read/delete probe against the real remote database.
-- [ ] Remove the synthetic row even when validation fails when cleanup is still possible.
-- [ ] Commit and push only the public `wrangler.jsonc` database ID after all remote validation succeeds.
-- [ ] Write a bounded GitHub step summary containing database name/ID and validation status, never credentials.
+- [x] Trigger only via `workflow_dispatch`.
+- [x] Require `confirmation == PROVISION_D1`.
+- [x] Fail before network mutation when required secrets are absent.
+- [x] Use Node 24 and exact `wrangler@4.137.0`.
+- [x] List D1 databases as JSON and reuse the exact intended name when present.
+- [x] Create the intended D1 database only when absent.
+- [x] Resolve and validate the authoritative UUID from the post-create/list result.
+- [x] Finalize `wrangler.jsonc` through the tested helper.
+- [x] List and apply remote migrations.
+- [x] Verify the migrated `payment_operations` table exists.
+- [x] Perform a synthetic non-payment insert/read/CAS/read/delete probe against the real remote database when credentials are present.
+- [x] Remove the synthetic row even when validation fails when cleanup is still possible.
+- [x] Commit and push only the public `wrangler.jsonc` database ID after all remote validation succeeds.
+- [x] Refuse to push if the isolated branch moved during provisioning.
+- [x] Write a bounded GitHub step summary containing database name/ID and validation status, never credentials.
+- [x] Add a regression test that locks the workflow to manual dispatch, explicit confirmation, dedicated secret naming, challenge-only source state, and no Worker deploy command.
 
 ## Task 3 — Documentation and checkpoint
-- [ ] Update `docs/OPERATIONS.md` with secret names, least-privilege guidance, workflow use, and failure recovery.
-- [ ] Update `docs/SECURITY.md` with provisioning credential boundaries.
-- [ ] Update `docs/ROADMAP.md` and `docs/EXECUTION_LEDGER.md`.
+- [x] Update `docs/OPERATIONS.md` with secret names, least-privilege guidance, workflow use, and failure recovery.
+- [x] Update `docs/SECURITY.md` with provisioning credential boundaries.
+- [x] Update `docs/ROADMAP.md` for provisioning automation vs remote completion.
+- [ ] Update `docs/EXECUTION_LEDGER.md`.
 - [ ] Update `docs/checkpoints/CHECKPOINT_CURRENT.md`.
 - [ ] Create historical checkpoint `docs/checkpoints/history/2026-09-26_016.md`.
 - [ ] Run final branch CI.
