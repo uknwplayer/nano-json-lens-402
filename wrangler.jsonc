@@ -10,7 +10,7 @@
     {
       "binding": "PAYMENT_DB",
       "database_name": "nano-json-lens-402-payment-state",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "8cbbea4c-b368-40e5-a7c0-9d72bce2567e",
       "migrations_dir": "migrations"
     }
   ]
