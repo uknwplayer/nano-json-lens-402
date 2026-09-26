@@ -29,8 +29,9 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Inspect official Nano x402 package and confirm npm 0.3.0 metadata.
 - [x] Read live facilitator /supported for exact / nano:mainnet.
 - [x] Pin production x402 dependency versions and integrity lock.
+- [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nano/exact` 0.3.0 with `@x402/core` 2.24.0 and validated the real resource-server construction API. Task 1 remains partial because runtime selection, bootstrap initialization, deployment compatibility, and final live integration evidence are still pending.
+Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nano/exact` 0.3.0 with `@x402/core` 2.24.0 and validated the real resource-server construction API. Block 012 added a fail-closed initialization boundary and successfully synchronized the real Pursekeeper supported capabilities. Task 1 remains partial because runtime/deployment selection and final live service integration are still pending.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -53,10 +54,12 @@ Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nan
 - [x] Stable replay identity derived from Nano state-block material rather than serialized proof bytes.
 - [x] Pin `@x402nano/exact` 0.3.0 and compatible `@x402/core` dependency tree.
 - [x] Construct and test the production `resourceServer` adapter offline.
-- [ ] Add and test explicit facilitator initialization/bootstrap boundary.
-- [ ] Validate initialized production challenge against controlled Pursekeeper capability synchronization.
+- [x] Add and test explicit fail-closed facilitator initialization/bootstrap boundary.
+- [x] Validate live read-only Pursekeeper supported synchronization through the pinned production bootstrap.
+- [ ] Wire only a ready production bootstrap into the real Nano `PaymentGate` startup path.
+- [ ] Generate and inspect the actual production 402 challenge without submitting payment.
 
-Blocks 008–010 established and hardened the local PaymentGate. Block 011 moved the project onto the pinned real x402 packages and validated production resource-server construction. The current suite is 65/65 GREEN with typecheck, dependency-tree validation, and production dependency audit GREEN. This does **not** yet prove live payment compatibility: `resourceServer.initialize()` has not been executed against Pursekeeper in Block 011, and no real verify/settle operation has occurred.
+Blocks 008–010 established and hardened the local PaymentGate. Block 011 moved the project onto the pinned real x402 packages. Block 012 added the bootstrap state machine and proved live read-only capability synchronization against Pursekeeper. The current local suite is 68/68 GREEN with typecheck, dependency-tree validation, and production dependency audit GREEN. Live `verify` and `settle` have still not been called.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
