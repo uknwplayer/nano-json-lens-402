@@ -4,14 +4,11 @@
 Keep the public endpoint functional throughout the Pursekeeper-required window, with margin beyond the 14-day period.
 
 ## Health
-Planned endpoint: `GET /health`
+Endpoint: `GET /health`
 
-Minimum response should expose:
-- status;
-- version/build;
-- server timestamp if useful.
+The Worker runtime intentionally keeps health independent of x402 bootstrap and D1 readiness. A facilitator or payment-state outage must not make the process health check fail.
 
-It must not require payment.
+Minimum response should expose only bounded availability metadata. It must not require payment.
 
 ## Incident Procedure
 If an outage occurs:
@@ -23,17 +20,17 @@ If an outage occurs:
 6. update the checkpoint;
 7. determine whether Pursekeeper must be informed or the reachability window must restart.
 
-## Deployment
+## Deployment Target
 V1 deployment target selected on 2026-09-26: **Cloudflare Workers Free + Cloudflare D1**.
 
 Reasons:
-- the service already uses a portable Fetch handler suitable for Workers;
-- the current Workers compatibility model supports the Node APIs used by this project when an appropriate current compatibility date is configured;
-- Workers Free has no application sleep/wake server lifecycle to manage;
-- D1 supplies persistent SQLite-backed state and conditional SQL writes for the replay/settlement store;
-- the selected free-tier capacity is far above the expected initial service traffic, but limits must be rechecked immediately before deployment.
+- the service uses a Fetch handler and now has a dedicated Worker module entrypoint;
+- the selected Workers compatibility date supports the Node APIs used by this project;
+- Workers Free avoids an application sleep/wake server lifecycle;
+- D1 supplies persistent SQLite-backed state and conditional SQL writes for replay/settlement state;
+- the selected free-tier capacity was far above expected initial traffic when reviewed, but provider limits must be rechecked immediately before deployment.
 
-As documented by Cloudflare when this decision was made, the relevant free-plan allowances included 100,000 Worker requests/day and D1 allowances of 5 million rows read/day, 100,000 rows written/day, and 5 GB total storage. These are external service limits, not project guarantees, and may change.
+External service limits are not project guarantees and may change. Recheck the official Cloudflare Workers/D1 limits and pricing immediately before a production deployment.
 
 Official references:
 - https://developers.cloudflare.com/workers/platform/limits/
@@ -41,8 +38,69 @@ Official references:
 - https://developers.cloudflare.com/d1/platform/pricing/
 - https://developers.cloudflare.com/workers/runtime-apis/nodejs/
 
-### Deployment is not complete
-Selection and local contract validation do not mean a Cloudflare Worker or D1 database exists yet. Account-side provisioning, D1 migration application, Worker binding/configuration, deployment, and external reachability tests remain future controlled steps.
+## Worker Rollout State
+The Worker code and deployment bundle are now prepared, but **no Cloudflare account-side resource has been provisioned or deployed yet**.
+
+Current rollout safeguards:
+- `src/worker.ts` exports the production Worker module;
+- `PAID_TRAFFIC_ENABLED` is a source-controlled `false` constant;
+- environment configuration cannot enable paid traffic in this stage;
+- a submitted `payment-signature` is rejected before facilitator `verify` or `settle` can run;
+- `GET /health` does not require D1 or x402 initialization;
+- `/api/lens` requires HTTPS and a valid `PAYMENT_DB` binding;
+- missing D1 state fails closed with 503;
+- the production resource URL is normalized to the request origin plus `/api/lens`;
+- `wrangler.jsonc` contains a deliberate zero UUID placeholder and is not a real D1 binding yet.
+
+CI validates the Worker bundle with exactly:
+
+```sh
+npx --yes wrangler@4.137.0 deploy --dry-run
+```
+
+The dry-run must remain green before any account-side deployment step.
+
+## D1 Provisioning Procedure
+Do not run these commands until authenticated to the intended Cloudflare account and ready to record the resulting resource identifiers.
+
+1. Create the remote D1 database:
+
+```sh
+npx --yes wrangler@4.137.0 d1 create nano-json-lens-402-payment-state
+```
+
+2. Copy the returned real `database_id` into `wrangler.jsonc`, replacing only:
+
+```text
+00000000-0000-0000-0000-000000000000
+```
+
+3. Review remote migration status:
+
+```sh
+npx --yes wrangler@4.137.0 d1 migrations list nano-json-lens-402-payment-state --remote
+```
+
+4. Apply the committed migration:
+
+```sh
+npx --yes wrangler@4.137.0 d1 migrations apply nano-json-lens-402-payment-state --remote
+```
+
+5. Validate the real binding with controlled non-payment state operations before deployment. The test must cover write/read/CAS and state persistence without any facilitator verify/settle call.
+
+6. Deploy **challenge-only**:
+
+```sh
+npx --yes wrangler@4.137.0 deploy
+```
+
+7. Externally verify:
+- `GET /health` returns 200;
+- a valid unpaid `POST /api/lens` returns the expected 402 challenge;
+- a request that includes a payment proof still cannot reach verify/settle while `PAID_TRAFFIC_ENABLED === false`.
+
+Only after the real D1 binding, migration, deployed health path, deployed 402 path, and security checks are independently GREEN may a later block propose changing the source-controlled paid-traffic gate.
 
 ## Persistent Payment State
 `src/payment/d1-store.ts` is the production state adapter. `migrations/0001_payment_state.sql` defines its schema.
@@ -53,7 +111,7 @@ Operational rules:
 - never fall back to `MemoryPaymentStateStore` in production;
 - do not automatically retry ambiguous settlement writes;
 - settlement state and receipt must be confirmed in one conditional database update;
-- after deployment/redeploy, verify the existing D1 state remains readable before permitting a live payment test.
+- after deployment/redeploy, verify existing D1 state remains readable before permitting a live payment test.
 
 ## Changes During the 14-Day Window
 Avoid high-risk changes during the 14-day window. Urgent fixes should be small, tested, and documented.
