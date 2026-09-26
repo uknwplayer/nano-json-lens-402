@@ -143,16 +143,10 @@ export function createNanoPaymentGate(options: NanoPaymentGateOptions): PaymentG
 
       let operationId: string | undefined;
       if (options.stateStore !== undefined) {
-        // Use the stable Nano state-block identity as the primary replay key.
-        // Envelope-only mutations must not create a second settlement operation.
         const paymentIdentity = deriveNanoBlockPaymentIdentity(payload);
         if (paymentIdentity === undefined) return { settled: false };
         operationId = deriveOperationId(context.requestDigest, paymentIdentity);
-        const claim = await options.stateStore.claimPayment(
-          paymentIdentity,
-          context.requestDigest,
-          operationId,
-        );
+        const claim = await options.stateStore.claimPayment(paymentIdentity, context.requestDigest, operationId);
         if (claim.status === 'conflict') return { settled: false };
         if (claim.status === 'existing') {
           const state = await options.stateStore.getState(claim.operationId);
@@ -196,9 +190,8 @@ export function createNanoPaymentGate(options: NanoPaymentGateOptions): PaymentG
         throw new Error('Settlement response could not be confirmed.');
       }
       if (operationId !== undefined) {
-        const settled = await options.stateStore!.compareAndSetState(operationId, 'settling', 'settled');
-        if (!settled) throw new Error('Settlement state could not be confirmed.');
-        await options.stateStore!.saveSettlementReceipt(operationId, receipt);
+        const confirmed = await options.stateStore!.confirmSettlement(operationId, receipt);
+        if (!confirmed) throw new Error('Settlement state could not be confirmed.');
       }
       return { settled: true, receipt };
     },
