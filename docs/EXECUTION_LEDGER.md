@@ -37,3 +37,22 @@ Evidence: 11 HTTP tests failed against the initial 501 scaffold. A twelfth test 
 Ruling: the HTTP layer is a portable Fetch handler; the actual listening/deployment adapter remains a deployment task. Cost: the repository cannot serve public traffic until bootstrap and the real gate are provided. Raw request digest is passed to the gate but is not claimed to establish payment binding. Unknown payment status returns 503 without a result; Task 5 must prevent unsafe automatic re-settlement.
 
 Task 4: complete locally. Task 1 remains partial; Task 5 and 6 pending. No production payment or hosted endpoint exists. Final whole-service review remains pending.
+
+## Block 008 / Task 5 — RED established
+Branch: task5-production-nano-payment.
+
+Created an isolated GitHub branch and a branch-only CI workflow because the local execution container could not resolve github.com. CI is used as the test executor; main remains untouched.
+
+Confirmed the previously used public Pursekeeper Nano receiving address from an authorized source: nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt. No seed/private key was accessed or recorded.
+
+Reviewed x402nano/exact source and server example at the pinned source commit. ExactNanoScheme uses the authorization flow and the example explicitly builds requirements, verifies, then settles before exposing the protected handler result. The signed Nano block itself does not cryptographically bind the submitted JSON body.
+
+Ruling: requestDigest will be carried and locally matched as service metadata for accidental/mismatched request detection, but the project will not claim cryptographic body binding. The Nano block settlement remains the authoritative single-spend/replay barrier. Cost if wrong: a proof that is still unsettled could potentially be raced against equivalent-price requests; deployment/concurrency tests must verify only one settlement succeeds.
+
+Ruling: V1 recovery policy will not automatically re-settle after an unknown settlement outcome. Transport/facilitator uncertainty maps to 503 and protected output remains hidden. Cost if wrong: a response-loss edge case may require manual transaction reconciliation instead of automatic retry.
+
+TDD RED evidence: test/payment.test.ts was added before production payment code. GitHub Actions run 36261797244 executed npm ci successfully, then npm test: 37 total, 36 passed, 1 failed exactly because src/payment.ts does not exist (ERR_MODULE_NOT_FOUND). Existing tests remained green. This is the expected RED state.
+
+Task 5 is IN PROGRESS, not complete. No real payment, facilitator write, public deployment, or 14-day window has started.
+
+Exact next step: implement the minimal src/payment.ts adapter and pin @x402nano/exact 0.3.0 plus compatible @x402/core, then run the focused/full suite in CI. Add explicit concurrency/replay tests before declaring Task 5 complete.
