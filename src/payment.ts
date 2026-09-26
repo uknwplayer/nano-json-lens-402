@@ -4,7 +4,7 @@ import type {
   PaymentOutcome,
   SettlementReceipt,
 } from './server.ts';
-import { deriveOperationId, digestPaymentEvidence } from './payment/identity.ts';
+import { deriveNanoBlockPaymentIdentity, deriveOperationId } from './payment/identity.ts';
 import type { PaymentStateStore } from './payment/store.ts';
 
 interface PaymentRequirements {
@@ -143,9 +143,10 @@ export function createNanoPaymentGate(options: NanoPaymentGateOptions): PaymentG
 
       let operationId: string | undefined;
       if (options.stateStore !== undefined) {
-        // Until the Nano adapter exposes a stronger stable protocol/on-chain identity,
-        // the exact payment evidence digest is the conservative replay key.
-        const paymentIdentity = digestPaymentEvidence(proof);
+        // Use the stable Nano state-block identity as the primary replay key.
+        // Envelope-only mutations must not create a second settlement operation.
+        const paymentIdentity = deriveNanoBlockPaymentIdentity(payload);
+        if (paymentIdentity === undefined) return { settled: false };
         operationId = deriveOperationId(context.requestDigest, paymentIdentity);
         const claim = await options.stateStore.claimPayment(
           paymentIdentity,
