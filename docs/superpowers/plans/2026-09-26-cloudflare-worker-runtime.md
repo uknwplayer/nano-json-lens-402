@@ -40,11 +40,11 @@
 - Consumes: `PaymentBootstrap`, `createD1PaymentStateStore`, `createProductionNanoPaymentGate`, and `createHandler`.
 - Produces: `createCloudflareWorkerRuntime(options)` with a `fetch(request, env)` method and `CloudflareWorkerEnv` containing `PAYMENT_DB`.
 
-- [ ] **Step 1: Write failing tests** for lazy bootstrap initialization, unpaid 402 generation, missing D1 fail-closed behavior, HTTPS resource normalization, and proof rejection without verify/settle while paid traffic is disabled.
-- [ ] **Step 2: Run CI and verify RED** because `src/worker-runtime.ts` does not exist.
-- [ ] **Step 3: Implement the minimal runtime adapter** with `allowPaidTraffic: false` required by the production caller.
-- [ ] **Step 4: Run the full suite and typecheck; require GREEN.**
-- [ ] **Step 5: Commit runtime implementation.**
+- [x] **Step 1: Write failing tests** for lazy bootstrap initialization, unpaid 402 generation, missing D1 fail-closed behavior, HTTPS resource normalization, and proof rejection without verify/settle while paid traffic is disabled.
+- [x] **Step 2: Run CI and verify RED** because `src/worker-runtime.ts` does not exist.
+- [x] **Step 3: Implement the minimal runtime adapter** with `allowPaidTraffic: false` required by the production caller.
+- [x] **Step 4: Run the full suite and typecheck; require GREEN.**
+- [x] **Step 5: Commit runtime implementation.**
 
 ### Task 2: Production Worker entrypoint
 
@@ -56,11 +56,11 @@
 - Consumes: `createProductionNanoPaymentBootstrap` and `createCloudflareWorkerRuntime`.
 - Produces: the default Cloudflare Worker module export.
 
-- [ ] **Step 1: Add a failing import/contract test** proving the exported Worker exposes `fetch` and the production composition is hard-coded challenge-only.
-- [ ] **Step 2: Verify RED.**
-- [ ] **Step 3: Implement the entrypoint** with fixed facilitator, payTo, and price parameters already approved by project checkpoints and `allowPaidTraffic: false`.
-- [ ] **Step 4: Run full tests/typecheck and require GREEN.**
-- [ ] **Step 5: Commit entrypoint.**
+- [x] **Step 1: Add a failing import/contract test** proving the exported Worker exposes `fetch` and the production composition is hard-coded challenge-only.
+- [x] **Step 2: Verify RED.**
+- [x] **Step 3: Implement the entrypoint** with fixed facilitator, payTo, and price parameters already approved by project checkpoints and `allowPaidTraffic: false`.
+- [x] **Step 4: Run full tests/typecheck and require GREEN.**
+- [x] **Step 5: Commit entrypoint.**
 
 ### Task 3: Wrangler configuration and bundle validation
 
@@ -73,11 +73,11 @@
 - Consumes: `src/worker.ts` and `migrations/0001_payment_state.sql`.
 - Produces: deploy configuration for Workers + D1, deliberately blocked from real deployment by a zero UUID placeholder until provisioning.
 
-- [ ] **Step 1: Add `wrangler.jsonc`** with `name`, `main`, `compatibility_date`, `workers_dev`, D1 binding `PAYMENT_DB`, database name, placeholder UUID, and `migrations_dir`.
-- [ ] **Step 2: Add exact `npx --yes wrangler@4.137.0 deploy --dry-run` CI validation.**
-- [ ] **Step 3: Run CI and require bundle dry-run GREEN without Cloudflare credentials.**
-- [ ] **Step 4: Document the explicit provisioning commands and the requirement to replace the placeholder UUID before deployment.**
-- [ ] **Step 5: Commit configuration/operations changes.**
+- [x] **Step 1: Add `wrangler.jsonc`** with `name`, `main`, `compatibility_date`, `workers_dev`, D1 binding `PAYMENT_DB`, database name, placeholder UUID, and `migrations_dir`.
+- [x] **Step 2: Add exact `npx --yes wrangler@4.137.0 deploy --dry-run` CI validation.**
+- [x] **Step 3: Run CI and require bundle dry-run GREEN without Cloudflare credentials.**
+- [x] **Step 4: Document the explicit provisioning commands and the requirement to replace the placeholder UUID before deployment.**
+- [x] **Step 5: Commit configuration/operations changes.**
 
 ### Task 4: Block closure
 
@@ -87,7 +87,7 @@
 - Modify: `docs/checkpoints/CHECKPOINT_CURRENT.md`
 - Create: `docs/checkpoints/history/2026-09-26_015.md`
 
-- [ ] **Step 1: Record RED/GREEN CI evidence and runtime security rulings.**
-- [ ] **Step 2: Mark Worker adapter/configuration complete but real D1 provisioning/deployment pending.**
+- [x] **Step 1: Record RED/GREEN CI evidence and runtime security rulings.**
+- [x] **Step 2: Mark Worker adapter/configuration complete but real D1 provisioning/deployment pending.**
 - [ ] **Step 3: Run final HEAD CI and require tests, typecheck, dependency checks, audit, and Wrangler dry-run GREEN.**
 - [ ] **Step 4: Archive checkpoint 015.**
