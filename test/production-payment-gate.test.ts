@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPaymentBootstrap } from '../src/payment/bootstrap.ts';
+import { createPaymentBootstrap, type PaymentBootstrap } from '../src/payment/bootstrap.ts';
 import { MemoryPaymentStateStore } from '../src/payment/memory-store.ts';
 import { createProductionNanoPaymentGate } from '../src/payment/production-gate.ts';
 import type { PaymentStateStore } from '../src/payment/store.ts';
@@ -34,6 +34,8 @@ function fakeResourceServer() {
   };
 }
 
+type FakeResourceServer = ReturnType<typeof fakeResourceServer>;
+
 class ProductionSafeTestStore implements PaymentStateStore {
   readonly productionSafe = true;
   async claimPayment() { return { status: 'claimed' } as const; }
@@ -43,7 +45,7 @@ class ProductionSafeTestStore implements PaymentStateStore {
   async getSettlementReceipt(): Promise<SettlementReceipt | undefined> { return undefined; }
 }
 
-function options(bootstrap: ReturnType<typeof createPaymentBootstrap>, stateStore: PaymentStateStore) {
+function options(bootstrap: PaymentBootstrap<FakeResourceServer>, stateStore: PaymentStateStore) {
   return {
     bootstrap,
     stateStore,
