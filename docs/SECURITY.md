@@ -24,6 +24,31 @@ Production composition is stricter than the generic test/development gate:
 
 `requestDigest` remains local service metadata used to detect request/payment mismatches. It must not be described as cryptographic binding between the Nano block and submitted JSON. Nano settlement remains authoritative for actual payment finality; the local state store is a mandatory production defense for replay, idempotency, concurrency, entitlement recovery, and settlement uncertainty.
 
+## Worker Rollout Gate
+The Cloudflare Worker integration adds an additional deployment-stage barrier:
+- `PAID_TRAFFIC_ENABLED` is a source-controlled `false` constant in `src/worker.ts`;
+- environment variables or account configuration cannot enable paid traffic in this stage;
+- challenge-only mode delegates unpaid challenge generation but rejects proof processing before the concrete resource server can call facilitator `verify` or `settle`;
+- the paid route requires HTTPS;
+- the paid route requires a D1 binding that exposes the expected statement API;
+- a missing or invalid binding fails closed with 503 before x402 bootstrap;
+- `GET /health` remains independent of D1 and facilitator readiness so payment infrastructure outages do not masquerade as process death;
+- the production resource URL is derived from the incoming origin plus the fixed `/api/lens` path, not arbitrary client-provided URL data.
+
+Changing `PAID_TRAFFIC_ENABLED` is a future security-sensitive source change. It must not occur until the real D1 database, migration, remote binding behavior, deployed health endpoint, deployed unpaid 402 response, and a fresh security/CI review are all independently GREEN.
+
+## Vendor SDK Boundary
+The concrete `@x402/core` resource server is isolated behind `src/payment/production-resource-server.ts` rather than leaking vendor protocol types through the generic payment core.
+
+The production boundary validates/converts:
+- local `PaymentResourceConfig` to the pinned SDK `ResourceConfig`;
+- local `PaymentResourceInfo` to the pinned SDK `ResourceInfo`;
+- local payment requirements to the SDK requirement structure, including positive timeout and required `extra` normalization;
+- untrusted decoded proof material into the SDK `PaymentPayload` shape before verify/settle calls;
+- facilitator responses back into the bounded local contract.
+
+This boundary exists so SDK upgrades cannot silently broaden the trusted input surface of the payment core. Any x402 dependency version change must rerun typecheck, full tests, audit, and Wrangler bundle validation.
+
 ## Persistent Replay and Settlement State
 The V1 production target is Cloudflare D1. The D1 adapter must preserve these invariants:
 - `payment_identity` is unique and cannot be rebound to another request digest;
@@ -49,7 +74,7 @@ Before release:
 - run tests;
 - avoid unnecessary dependencies.
 
-The production Task 5 CI additionally validates the complete locked dependency tree and audits production dependencies.
+The production Task 5 CI validates the complete locked dependency tree, audits production dependencies, and dry-runs the pinned Wrangler Worker bundle.
 
 ## Data Handling
 Treat the service as a transient processor: receive JSON, calculate the response, and discard the submitted content unless a future design explicitly changes this rule.
