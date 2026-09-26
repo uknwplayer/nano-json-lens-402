@@ -156,3 +156,30 @@ Final code evidence at commit `7c32b52fc898713539a92861ce89dbe34485792e`, Action
 Ruling: local SQLite/D1-contract evidence establishes the SQL and adapter semantics but does not prove a remote Cloudflare D1 binding or Worker deployment. No real D1 resource has been provisioned yet. No payment proof, live verify, live settle, Nano transfer, public deployment, or 14-day reachability window occurred in Block 014.
 
 Exact next step: provision the real Cloudflare D1 database and Worker configuration, apply the migration, wire the D1 binding through the Worker entrypoint, then perform remote non-payment state/health/402 validation before considering any live verify/settle test.
+
+## Block 015 / Task 5 — Cloudflare Worker challenge-only runtime and bundle
+Branch: task5-production-nano-payment.
+
+Added implementation plan `docs/superpowers/plans/2026-09-26-cloudflare-worker-runtime.md` and kept the rollout explicitly non-payment.
+
+TDD RED evidence for the Worker runtime: commit `cec9527df7efbad669800b8665b6ba8f298c3ff2`, Actions run `36273945075`. All 78 pre-existing tests passed and the only failure was `ERR_MODULE_NOT_FOUND` for the not-yet-created `src/worker-runtime.ts`. A test fixture that accidentally used a query string was corrected because the existing HTTP contract rejects query parameters before the payment gate.
+
+Implemented `src/worker-runtime.ts`. The adapter leaves `/health` independent of payment infrastructure, requires HTTPS and a valid D1 binding for `/api/lens`, lazily initializes the shared fail-closed bootstrap only on the paid resource path, normalizes the resource URL to origin + `/api/lens`, and supports challenge-only operation in which submitted proofs cannot reach facilitator verify/settle.
+
+TDD RED evidence for the production entrypoint: commit `611745110056db1cdfd3f1b3dbfcb8621889c9fa`, Actions run `36274072390`. The new contract failed exactly because `src/worker.ts` did not exist while earlier tests stayed green. Added `src/worker.ts` with fixed approved facilitator/payTo/price parameters and source-controlled `PAID_TRAFFIC_ENABLED = false`. No environment variable can enable paid traffic in this rollout stage.
+
+The first entrypoint integration run passed all 84 runtime tests but typecheck exposed a latent mismatch between the generic local `ResourceServerLike` contract and the concrete pinned `x402ResourceServer`. Systematic debugging traced the mismatch to overly broad local representations of payment configuration and resource metadata. An intermediate direct use of vendor `ResourceConfig` made the mismatch more explicit, including the fact that `description`/`mimeType` belong to resource information rather than payment configuration.
+
+Ruling: vendor SDK types must not leak through the generic payment core. Added explicit local `PaymentResourceConfig` and `PaymentResourceInfo` contracts and moved all concrete SDK conversion/validation into `src/payment/production-resource-server.ts`. That boundary now validates requirements, resource metadata, decoded payment payload shape, required timeout/extra fields, and facilitator outputs before translating between the generic core and the pinned SDK.
+
+Adapter GREEN evidence: commit `e36bb26ddf2cf20ca9dc4a0bf20a2b39eff7517d`, Actions run `36274568426`: 84/84 tests passed; typecheck passed; full dependency-tree validation passed; production audit reported 0 vulnerabilities.
+
+Added `wrangler.jsonc` with entrypoint `src/worker.ts`, compatibility date `2026-09-26`, binding `PAYMENT_DB`, database name `nano-json-lens-402-payment-state`, and migrations directory `migrations`. The committed `database_id` is intentionally the zero UUID placeholder `00000000-0000-0000-0000-000000000000`; it is not a real Cloudflare resource identifier.
+
+Task 5 CI now runs exact bundle validation with `npx --yes wrangler@4.137.0 deploy --dry-run`. Bundle evidence at commit `98752af61ca7a317cd29a7c1a250d5ce66d13d60`, Actions run `36274618113`, job `108494824442`: 84/84 tests, typecheck, Wrangler dry-run, `npm ls --all`, and production audit all passed. Wrangler bundled the actual Worker entrypoint, recognized `env.PAYMENT_DB` as a D1 Database binding, and reported 2067.29 KiB upload / 287.95 KiB gzip before exiting without deployment.
+
+Ruling: dry-run bundle success proves current code/configuration can be packaged for Workers; it does not prove a Cloudflare account resource, remote D1 semantics, external reachability, or Pursekeeper paid-call acceptance. `PAID_TRAFFIC_ENABLED` must remain `false` through initial remote provisioning and challenge-only deployment.
+
+No Cloudflare D1 database was created, no real database ID was committed, no remote migration was applied, no Worker was deployed, no payment proof reached the facilitator, no live verify/settle occurred, no Nano transfer occurred, and the 14-day window did not start in Block 015.
+
+Exact next step: authenticate to the intended Cloudflare account, provision the D1 database, replace the zero UUID with the returned ID, apply the migration, validate remote non-payment write/read/CAS semantics, deploy challenge-only, and externally verify health + unpaid 402 before any future payment-enablement decision.
