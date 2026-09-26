@@ -32,6 +32,8 @@ When a material milestone is reached, also create a historical snapshot under `d
 Block 004 evidence: [protocol validation](protocol/NANO_402_WIRE_EXAMPLES.md). Task 1 remains partial: address, runtime compatibility, exact dependency lock and recovery behavior are pending. Package discovery is not a passing payment integration test.
 
 ## Phase 2 — JSON Lens Core
+- [x] Strict UTF-8 request parser and envelope validation.
+- [x] Duplicate-key, byte, depth and node limit tests (14 tests).
 - [ ] Deterministic canonicalization.
 - [ ] SHA-256.
 - [ ] Structural metrics.

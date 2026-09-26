@@ -11,8 +11,8 @@ The project is also designed to satisfy Pursekeeper's seller newcomer credit req
 **English is the official language of this project.** Repository content, source code, comments, API fields, public errors, operational logs, documentation, releases, issues, and customer-facing communication must be written in English.
 
 ## Status
-**Current phase:** specification and execution plan approved; protocol validation in progress.  
-**Endpoint implementation:** not started.  
+**Current phase:** strict request parser implemented and tested; JSON analysis core next.
+**Endpoint implementation:** request parsing module complete; HTTP and payments not implemented.
 **Deployment:** not started.
 
 Always consult:
@@ -63,3 +63,16 @@ A new chat or agent must begin with `docs/checkpoints/CHECKPOINT_CURRENT.md`, fo
 
 ## License and Versioning
 The license and versioning policy will be defined before the first operational public release.
+
+## Local Development
+Requires Node.js 24 or newer.
+
+```bash
+npm ci --ignore-scripts
+npm test
+npm run typecheck
+```
+
+`src/request.ts` validates bounded UTF-8 JSON input without network or payment operations. It exports `parseLensRequest`, `LensRequest`, `JsonValue`, and `LensError`. The parser uses pinned `jsonc-parser` 3.3.1 with comments and trailing commas disabled, checks duplicate decoded keys, then uses native `JSON.parse` for the value. Numeric values use JavaScript binary64 semantics; non-finite results are rejected. Exact arbitrary-precision decimal preservation is not provided.
+
+Current verification: 14 parser tests passing. No HTTP endpoint or hosted service is available yet.

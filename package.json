@@ -1,0 +1,13 @@
+{
+  "name": "nano-json-lens-402",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "jsonc-parser": "3.3.1" },
+  "devDependencies": { "@types/node": "24.0.0", "typescript": "5.9.3" }
+}

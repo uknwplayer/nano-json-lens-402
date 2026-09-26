@@ -46,10 +46,10 @@
 
 **Interfaces:** Produces `parseLensRequest(raw: Uint8Array, contentType: string): LensRequest` with `LensRequest = { mode: 'document'; document: JsonValue } | { mode: 'compare'; before: JsonValue; after: JsonValue }`; throws typed `LensError` with HTTP status and public code. Reject duplicate object members during parsing.
 
-- [ ] Write failing tests for valid single/compare input, explicit `null`, extra or missing fields, malformed JSON, duplicate keys, content type, and 64 KiB boundary.
-- [ ] Run `npm test -- test/request.test.ts`; confirm the new tests fail.
-- [ ] Implement strict parsing and byte limit with a parser that can detect duplicate keys; pin its version and justify the dependency.
-- [ ] Run the focused test and full `npm test`; commit and update checkpoint.
+- [x] Write failing tests for valid single/compare input, explicit `null`, extra or missing fields, malformed JSON, duplicate keys, content type, and 64 KiB boundary.
+- [x] Run `npm test -- test/request.test.ts`; confirm the new tests fail.
+- [x] Implement strict parsing and byte limit with a parser that can detect duplicate keys; pin its version and justify the dependency.
+- [x] Run the focused test and full `npm test`; commit and update checkpoint.
 
 ### Task 3: Deterministic Analysis
 
