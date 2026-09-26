@@ -1,13 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createPaymentBootstrap, type PaymentBootstrap } from '../src/payment/bootstrap.ts';
+import { createD1PaymentStateStore } from '../src/payment/d1-store.ts';
 import { MemoryPaymentStateStore } from '../src/payment/memory-store.ts';
 import { createProductionNanoPaymentGate } from '../src/payment/production-gate.ts';
 import type { PaymentStateStore } from '../src/payment/store.ts';
 import type { SettlementReceipt } from '../src/server.ts';
 import type { PaymentState } from '../src/payment/state.ts';
+import { SQLiteD1Database } from './support/sqlite-d1.ts';
 
 const payTo = 'nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt';
+const migration = readFileSync(new URL('../migrations/0001_payment_state.sql', import.meta.url), 'utf8');
 
 function fakeResourceServer() {
   return {
@@ -60,4 +64,18 @@ test('production payment gate wires only a ready resource server into the Nano g
   assert.equal(accepts[0]?.scheme, 'exact');
   assert.equal(accepts[0]?.network, 'nano:mainnet');
   assert.equal(accepts[0]?.payTo, payTo);
+});
+
+test('production payment gate accepts the durable D1 state store', async () => {
+  const database = new SQLiteD1Database();
+  database.exec(migration);
+  try {
+    const bootstrap = createPaymentBootstrap(fakeResourceServer());
+    await bootstrap.initialize();
+    const gate = createProductionNanoPaymentGate(options(bootstrap, createD1PaymentStateStore(database)));
+    const challenge = await gate.challenge({ requestDigest: 'a'.repeat(64), resourceUrl: 'https://seller.example/api/lens' });
+    assert.equal(challenge.x402Version, 2);
+  } finally {
+    database.close();
+  }
 });
