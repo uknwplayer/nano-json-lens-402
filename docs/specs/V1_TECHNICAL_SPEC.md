@@ -1,6 +1,6 @@
 # V1 Technical Specification — Review Draft
 
-**Status:** proposed; awaiting operator review. **Date:** 2026-09-26. No application code or deployment exists.
+**Status:** design approved by the operator on 2026-09-26; external integration gates remain open. **Date:** 2026-09-26. No application code or deployment exists.
 
 ## Purpose and acceptance
 Provide a public, useful, deterministic JSON analysis endpoint paid in Nano mainnet, with no paid upstream dependency. Success requires an unpaid HTTP 402 challenge advertising a price and receiving address, a successful Pursekeeper-paid call returning real analysis, public payment code, and 14 days of reachability. These are external acceptance criteria, not evidence of completion.
@@ -20,6 +20,8 @@ Canonical JSON is defined for v1 as UTF-8 serialized JSON with object keys sorte
 Start with a 64 KiB raw request body cap, 1,000 nodes per analyzed document, 32 maximum depth, 128 KiB maximum response body, and a bounded processing timeout. All caps must be enforced before unbounded recursion or response allocation. A comparison counts each side separately. If result exceeds the response cap, return a clear error before settlement; validate all response bounds in a preflight computation, but do not return the analysis until payment succeeds. Proposed error body: `{ "error": { "code": string, "message": string } }`. `400` malformed JSON / duplicate keys / invalid shape; `413` size, node, depth or result limit; `415` unsupported content type; `402` payment required or rejected with protocol-specific metadata; `503` facilitator unavailable. Do not include submitted values, secrets, or payment proof in errors or logs.
 
 ## Payment integration decision gate
+
+Block 004 update: [primary-source and live discovery evidence](../protocol/NANO_402_WIRE_EXAMPLES.md) now confirms package 0.3.0 and the facilitator's advertised network. The requirements below remain gates until integration tests, address and deployment configuration are complete.
 The previous project notes nominate `@x402nano/exact` and a Pursekeeper facilitator, but this block has **not independently verified package version, current API, exact challenge headers, facilitator endpoint, replay handling, or licensing**. Before writing the payment adapter, inspect the package's primary source and a current runnable example, pin a version, verify `nano:mainnet` syntax and verify/settle semantics, then amend this spec with exact wire examples. A public Nano receiving address must be confirmed with the operator or an already authorized project source. Never generate or publish a seed. Proposed initial price is `0.01 XNO` per call, pending explicit confirmation and correct raw-unit conversion.
 
 ## Runtime and deployment decision gate
@@ -31,4 +33,4 @@ Use a Node-compatible TypeScript runtime behind HTTPS. Choose the provider only 
 3. Public acceptance: inspect a sanitized 402 response, have Pursekeeper perform the first paid call, verify real output, record URL/commit/time and availability observations. The 14-day window starts only when Pursekeeper confirms the relevant entry/start condition.
 
 ## Review decisions needed before implementation
-Confirm public Nano receiving address, price, payment package/facilitator wire contract, deployment provider, and license. These remain unresolved and must not be represented as fixed. The contract above is a proposed design for review; approved changes should be reflected here and in the roadmap/checkpoint before an implementation plan is written.
+Confirm public Nano receiving address, price, payment package/facilitator wire contract, deployment provider, and license. These remain unresolved and must not be represented as fixed. The operator approved this design and its implementation plan. Open external parameters must be resolved and recorded before production payment integration.
