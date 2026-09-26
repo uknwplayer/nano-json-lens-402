@@ -1,31 +1,35 @@
 # CURRENT CHECKPOINT — Nano JSON Lens 402
 
-**Date:** 2026-09-26  
-**Block:** 003 — V1 specification approved; implementation plan written  
-**Overall state:** PLAN AWAITING OPERATOR REVIEW / IMPLEMENTATION NOT STARTED
+**Date:** 2026-09-26
+**Block:** 004 — Nano protocol discovery and hosting assessment
+**Overall state:** PLAN APPROVED / TASK 1 PARTIAL / APPLICATION NOT IMPLEMENTED
 
-## Mission
-Build a genuinely useful deterministic JSON analysis service paid in Nano mainnet, with public payment-taking code and a stable public endpoint for Pursekeeper's seller newcomer criteria.
+## Approved direction
+The operator approved the V1 specification and implementation plan, choosing direct execution. Repository content stays in English; private operator conversation stays in Portuguese. Each block is at most approximately 15 minutes and ends with a checkpoint update.
 
-## Completed
-- English documentation foundation (blocks 001 and 002).
-- Operator approved the [V1 technical specification](../specs/V1_TECHNICAL_SPEC.md) on 2026-09-26.
-- Wrote the [task-by-task implementation plan](../../docs/superpowers/plans/2026-09-26-nano-json-lens-v1.md), covering protocol validation, parsing, analysis, HTTP, payment, deployment and Pursekeeper acceptance.
-- Updated this checkpoint at block closure.
+## Completed this block
+- Inspected the official JavaScript package, source example and scheme.
+- Confirmed npm publication of @x402nano/exact 0.3.0 and MIT license.
+- Successfully fetched live facilitator /supported: x402 v2, exact, nano:mainnet, XNO, work required.
+- Recorded primary-source links, source pin, package integrity and sanitized discovery response in [protocol evidence](../protocol/NANO_402_WIRE_EXAMPLES.md).
+- Updated README, specification approval status, roadmap and decision log.
+- Assessed hosting: Cloudflare Workers Free is a candidate pending compatibility and CPU measurements. Vercel Hobby is excluded for this commercial service.
 
-## Pending review and facts
-- Operator review of the implementation plan and selection of execution method.
-- Confirm public Nano receiving address, price (`0.01 XNO` proposed), current package/facilitator wire contract, deployment provider and license in plan Task 1.
-- Do not implement payment code with guessed protocol values.
+## Task ledger
+Plan: docs/superpowers/plans/2026-09-26-nano-json-lens-v1.md.
+Task 1: partial. Source/package discovery verified; receiving address, runtime compatibility, dependency lock, and recovery design remain open.
+Tasks 2–6: not started.
+Ruling: pure JSON core work may proceed independently of the open payment/deployment parameters. Production payment integration remains gated.
+Ruling: source examples do not establish request-body binding or replay safety; test and design these explicitly before payment integration.
 
-## Technical state
-No product source code, tests, hosted URL, paid call, or 14-day availability window exists yet. Planned tasks are not completed tasks. Pursekeeper's prepayment has not been claimed.
+## Evidence and limits
+GET /supported and npm metadata retrieval succeeded. Source files were read. No dependency installation, application tests, deployment, verify/settle call, real payment or customer message was performed. Discovery success is not payment success.
 
-## Rules
-All project artifacts, public errors and customer communication use English; private operator conversation may use Portuguese. No wallet seed or private key in source or runtime. End each work block by updating this checkpoint and record material milestones in history. Pause about every 15 minutes for the operator to continue.
+## Needed from operator
+Public Nano receiving address (nano_...). Never request seed, private key or recovery phrase. No receiving address is configured yet.
 
 ## Exact next step
-Operator reviews `docs/superpowers/plans/2026-09-26-nano-json-lens-v1.md` and chooses native execution or subagent-driven execution. Then start Task 1 with primary-source verification and public-parameter confirmation. Keep source references and evidence in the repository.
+Obtain/confirm the receiving address and begin Task 2 (strict JSON request parsing and local tests). In parallel with later core work, resolve runtime compatibility and payment recovery design before Task 5. Do not ask again for plan/execution approval.
 
-## Resume instruction
-Read this file, the specification, the plan, roadmap and decisions; inspect the actual repository state. Do not infer implementation from the plan. Update this checkpoint at the end of the next work block.
+## Resume
+Read this checkpoint, protocol evidence, approved specification, implementation plan and decision log. Inspect actual repository state. Preserve unimplemented status until tests/code exist. Record a historical checkpoint at material milestones, and update this file last at block closure.
