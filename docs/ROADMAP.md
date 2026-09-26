@@ -22,7 +22,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Confirm facilitator.
 - [x] Retrieve/confirm operator public Nano address.
 - [x] Freeze initial price.
-- [ ] Select runtime/deployment.
+- [x] Select runtime/deployment target: Cloudflare Workers Free + D1.
 - [x] Define payload limits and error schema.
 - [x] Produce testable implementation plan.
 - [x] Operator approved direct execution of the plan.
@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nano/exact` 0.3.0 with `@x402/core` 2.24.0 and validated the real resource-server construction API. Block 012 added a fail-closed initialization boundary and successfully synchronized the real Pursekeeper supported capabilities. Block 013 proved the actual initialized HTTP 402 challenge path. Task 1 remains partial because runtime/deployment and persistent production state storage are still pending.
+Blocks 004 and 011–014 established protocol discovery, pinned package integration, fail-closed bootstrap, the real 402 path, and the deployment/state architecture. Cloudflare account-side provisioning and deployment remain pending.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -59,16 +59,21 @@ Block 004 established protocol/facilitator discovery. Block 011 pinned `@x402nan
 - [x] Wire only a ready production bootstrap into the production Nano `PaymentGate` composition.
 - [x] Reject non-production replay state from production gate composition.
 - [x] Generate and inspect the actual initialized production HTTP 402 challenge without submitting payment.
-- [ ] Select a persistent state backend compatible with the final free deployment runtime.
-- [ ] Implement and test a truly `productionSafe` persistent `PaymentStateStore`.
-- [ ] Prove replay/settlement state survives process restart or redeploy according to the selected backend guarantees.
-- [ ] Wire that persistent store into the payment-taking production startup path.
+- [x] Select persistent state backend compatible with the free deployment target: Cloudflare D1.
+- [x] Add atomic settlement-confirmation contract so state and receipt are not split across writes.
+- [x] Implement and test a `productionSafe` D1 `PaymentStateStore`.
+- [x] Prove SQL replay/settlement state and receipt survive closing/reopening the test database.
+- [x] Prove production composition accepts the D1 store while continuing to reject memory state.
+- [ ] Provision the real Cloudflare D1 database and apply migration `0001_payment_state.sql`.
+- [ ] Bind D1 to the Worker runtime and validate the adapter against the real remote binding.
+- [ ] Wire the deployed store into the payment-taking production startup path.
 
-Blocks 008–010 established and hardened the local PaymentGate. Block 011 moved the project onto the pinned real x402 packages. Block 012 added the bootstrap state machine and proved live read-only capability synchronization against Pursekeeper. Block 013 added a strict production composition boundary and proved a real initialized `POST /api/lens` request returns the expected 402 challenge: x402 v2, `exact`, `nano:mainnet`, `XNO`, `0.01 XNO`, expected payTo, matching request digest metadata, and matching `payment-required` header/body. The local suite is 71/71 GREEN with typecheck, dependency-tree validation, and production dependency audit GREEN. Live `verify` and `settle` have still not been called. Payment-taking production traffic remains blocked until persistent replay/settlement state exists.
+Block 014 selected Cloudflare Workers Free + D1, removed the settlement state/receipt crash gap with `confirmSettlement`, implemented the D1 store and migration, and reached 78/78 local tests GREEN. The D1 contract covers unique claims, rebinding conflict, conditional CAS, atomic settlement confirmation, receipt recovery, and reopen durability. This is not yet a deployed Cloudflare database. Live `verify` and `settle` have still not been called.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
-- [ ] Runtime bootstrap/adapter and real payment gate with persistent production state.
+- [ ] Add the Cloudflare Worker entrypoint/configuration and real D1 binding.
+- [ ] Provision/apply D1 migration.
 - [ ] `POST /api/lens` live.
 - [ ] `GET /health` live.
 - [ ] HTTPS deployment.
