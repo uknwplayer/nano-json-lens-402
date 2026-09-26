@@ -139,3 +139,20 @@ The temporary live challenge workflow was removed after evidence capture in comm
 Ruling: a correct real 402 challenge is now proven, but payment-taking production readiness is still blocked. The repository has only a process-local memory store implementation, which is not durable across restart/redeploy and advertises `productionSafe = false`. Before any live verify or settle attempt, the final deployment runtime and a persistent replay/settlement state backend must be selected, implemented, and tested for the required durability semantics.
 
 Task 5 remains IN PROGRESS. No payment proof, live verify, live settle, Nano transfer, public deployment, or 14-day window occurred in Block 013. Exact next step is to select the free production runtime/storage combination and implement a truly production-safe persistent `PaymentStateStore` before the first paid-call test.
+
+## Block 014 / Task 5 — Cloudflare Workers + D1 durable payment state
+Branch: task5-production-nano-payment.
+
+Selected Cloudflare Workers Free + D1 as the V1 deployment/state target after reviewing current official limits and runtime compatibility. The choice keeps the Fetch architecture, provides a persistent SQLite-backed store, avoids a sleeping application-server lifecycle, and fits the zero-cost constraint at expected initial traffic. Cloudflare account-side provisioning has not yet occurred.
+
+Before the D1 adapter, the payment-state contract was hardened. TDD RED commit `77fe69b99aecd388cded72a45475be7dc0a137ca`, Actions run `36272330443`, produced 73 tests total with exactly two new failures because `confirmSettlement` did not exist. Added `confirmSettlement(operationId, receipt)` and changed the payment gate so `settling -> settled` plus receipt persistence is delegated as one atomic store operation, eliminating the prior crash gap between state and receipt writes.
+
+Created the D1 TDD contract at commit `2181891b66b823da137b068f6bd53d5412afbe05`; existing tests remained green and the new D1 file failed exactly because `src/payment/d1-store.ts` did not exist. Added migration `migrations/0001_payment_state.sql` and `createD1PaymentStateStore`. The adapter uses unique payment and operation identities, `INSERT OR IGNORE` plus read-back for atomic claim ownership, conditional SQL updates for CAS, and one conditional update for settlement state plus receipt. Stored receipts are revalidated on read.
+
+The first D1 GREEN attempt exposed only a Node test-harness syntax incompatibility: parameter properties are unsupported by Node 24 strip-only TypeScript execution. The harness was rewritten with ordinary class fields; production D1 code did not change.
+
+Final code evidence at commit `7c32b52fc898713539a92861ce89dbe34485792e`, Actions run `36272741695`: 78/78 tests passed; typecheck passed; `npm ls --all` passed; production audit reported 0 vulnerabilities. D1 tests prove unique concurrent claim ownership, rebinding conflict, stale CAS exclusion, atomic settlement confirmation, receipt recovery, and persistence after closing/reopening the same SQLite database. Production composition explicitly accepts the D1 store while still rejecting `MemoryPaymentStateStore`.
+
+Ruling: local SQLite/D1-contract evidence establishes the SQL and adapter semantics but does not prove a remote Cloudflare D1 binding or Worker deployment. No real D1 resource has been provisioned yet. No payment proof, live verify, live settle, Nano transfer, public deployment, or 14-day reachability window occurred in Block 014.
+
+Exact next step: provision the real Cloudflare D1 database and Worker configuration, apply the migration, wire the D1 binding through the Worker entrypoint, then perform remote non-payment state/health/402 validation before considering any live verify/settle test.
