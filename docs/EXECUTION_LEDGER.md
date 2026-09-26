@@ -84,3 +84,22 @@ Ruling: equivalent proof envelopes for the same Nano block must share one local 
 Verification: GitHub Actions run 36269262669 completed successfully; npm test passed 64/64, npm run typecheck passed, and npm ci reported 0 vulnerabilities.
 
 Task 5 remains IN PROGRESS. Exact next step is production dependency pinning and construction of the real @x402nano/exact resourceServer adapter under tests. No real payment or live facilitator write occurred in Blocks 009–010.
+
+## Block 011 / Task 5 — pinned production resource-server adapter
+Branch: task5-production-nano-payment.
+
+Validated the upstream `@x402nano/exact` 0.3.0 package metadata and its declared `@x402/core ^2.22.0` compatibility range. Pinned `@x402/core` 2.24.0 because that exact version is resolved by the upstream release lock evidence, avoiding an uncontrolled compatible-version drift.
+
+TDD RED evidence: commit 2cecc3730bfc0ef3849d54cd88ce82906f6fd640 added the production resource-server test before implementation. Actions produced 65 tests total, 64 passed, 1 failed exactly with `ERR_MODULE_NOT_FOUND` for `src/payment/production-resource-server.ts`.
+
+Implemented `createProductionNanoResourceServer` using the real `HTTPFacilitatorClient`, `x402ResourceServer`, and `ExactNanoScheme`, registering `exact` for `nano:mainnet`. The constructor validates HTTPS and deliberately performs no facilitator network I/O.
+
+A temporary read-only Actions workflow generated the npm lockfile with registry-provided integrity hashes. The pinned tree includes `@x402nano/exact` 0.3.0, `@x402/core` 2.24.0, helper 0.2.0, typescript-common 0.1.0, nano-sdk 1.0.7, and bignumber.js 9.3.1. The probe workflow was deleted after the lock was committed.
+
+The first GREEN attempt surfaced an integration-lifecycle fact rather than a production defect: `buildPaymentRequirements()` rejects use before `x402ResourceServer.initialize()` has synchronized facilitator-supported kinds. Upstream example and core behavior agree. Ruling: initialization is an explicit bootstrap/network boundary; do not hide it in the constructor or fake offline facilitator readiness. Cost if wrong: startup can fail closed instead of accepting traffic with stale/unknown facilitator capability.
+
+The test was corrected to prove the offline contract that is actually guaranteed: the real resource server constructs, registers `exact` for `nano:mainnet`, and exposes the expected initialize/build/challenge/verify/settle API surface. Server-side construction requires no Nano seed, private key, or payer signing material.
+
+Verification: final branch state at commit eeb483d01e852b27dc72b62f23a70445c3d1cabc, Actions run 36270214290. `npm ci` succeeded; `npm test` passed 65/65; `npm run typecheck` passed; `npm ls --all` validated the locked tree; `npm audit --omit=dev --audit-level=moderate` reported 0 vulnerabilities.
+
+Task 5 remains IN PROGRESS. Exact next step is a test-first runtime/bootstrap initialization boundary, followed by controlled read-only facilitator capability synchronization and then wiring the initialized resource server into the real payment startup path. No real payment, live facilitator initialize/verify/settle, deployment, or 14-day window occurred in Block 011.
