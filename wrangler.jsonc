@@ -1,6 +1,6 @@
 {
-  // Challenge-only deployment configuration. Replace this zero UUID only with the
-  // real ID returned by `wrangler d1 create nano-json-lens-402-payment-state`.
+  // Challenge-only deployment configuration bound to the remotely provisioned
+  // Cloudflare D1 database. The database ID is public configuration metadata.
   // PAID_TRAFFIC_ENABLED remains source-controlled false in src/worker.ts.
   "name": "nano-json-lens-402",
   "main": "src/worker.ts",

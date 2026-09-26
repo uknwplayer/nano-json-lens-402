@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Blocks 004 and 011–016 established protocol discovery, pinned package integration, fail-closed bootstrap, the real unpaid 402 path, D1 persistence architecture, a challenge-only Cloudflare Worker bundle, and guarded remote D1 provisioning automation. Cloudflare account-side provisioning remains pending until operator authentication/secrets are supplied and the manual workflow succeeds.
+Blocks 004 and 011–017 established protocol discovery, pinned package integration, fail-closed bootstrap, the real unpaid 402 path, D1 persistence architecture, a challenge-only Cloudflare Worker bundle, guarded D1 provisioning automation, and the real remotely migrated/validated D1 production state backend. Worker deployment remains pending.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -69,20 +69,21 @@ Blocks 004 and 011–016 established protocol discovery, pinned package integrat
 - [x] Hard-disable paid traffic in source while preserving unpaid production 402 challenge generation.
 - [x] Add a manual, branch-guarded, idempotent remote D1 provisioning/migration workflow.
 - [x] Add tested protection against silently rebinding an already-real D1 UUID.
-- [ ] Provision/reuse the real Cloudflare D1 database and apply migration `0001_payment_state.sql` via the guarded workflow.
-- [ ] Validate synthetic write/read/CAS against the real remote D1 database.
+- [x] Provision the real Cloudflare D1 database `nano-json-lens-402-payment-state`.
+- [x] Apply remote migration `0001_payment_state.sql`.
+- [x] Validate synthetic write/read/CAS/delete against the real remote D1 database.
 - [ ] Enable payment-taking startup only after deployed state/runtime prerequisites are independently GREEN.
 
-Block 014 selected Cloudflare Workers Free + D1 and implemented the durable store/migration. Block 015 added the Worker runtime/entrypoint, hard-disabled paid traffic, and proved the bundle with Wrangler 4.137.0 dry-run. Block 016 added a tested JSONC finalizer and a manual provisioning workflow that requires GitHub-held Cloudflare credentials, explicit `PROVISION_D1` confirmation, exact branch isolation, migration application, a synthetic remote state probe, cleanup, and branch-movement protection before committing the public D1 UUID. Remote provisioning itself is not complete until that workflow is successfully dispatched with valid account credentials. Live `verify`/`settle` have still not been called.
+Block 014 selected Cloudflare Workers Free + D1 and implemented the durable store/migration. Block 015 added the Worker runtime/entrypoint, hard-disabled paid traffic, and proved the bundle with Wrangler 4.137.0 dry-run. Block 016 added guarded provisioning automation. Block 017 used GitHub-held Cloudflare credentials through a one-shot isolated launcher because GitHub does not expose branch-only `workflow_dispatch` workflows in the default Actions UI. Actions run `36280708030` created D1 database `8cbbea4c-b368-40e5-a7c0-9d72bce2567e`, applied `0001_payment_state.sql`, passed the synthetic remote write/read/CAS/delete probe, and committed only the public database UUID. Live `verify`/`settle` have still not been called.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
 - [x] Add Cloudflare Worker runtime/entrypoint and D1 binding contract.
-- [x] Add Wrangler configuration with an intentionally non-production placeholder D1 ID.
+- [x] Add Wrangler configuration.
 - [x] Prove the current Worker bundle with `wrangler deploy --dry-run`.
 - [x] Add guarded remote D1 provisioning/migration automation.
-- [ ] Provision/apply the real remote D1 migration.
-- [ ] Validate the real D1 database before deployment.
+- [x] Provision/apply the real remote D1 migration.
+- [x] Validate the real D1 database before deployment.
 - [ ] Deploy challenge-only Worker.
 - [ ] `POST /api/lens` live.
 - [ ] `GET /health` live.

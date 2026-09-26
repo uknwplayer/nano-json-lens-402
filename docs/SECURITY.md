@@ -40,24 +40,35 @@ Changing `PAID_TRAFFIC_ENABLED` is a future security-sensitive source change. It
 ## Cloudflare Provisioning Credentials
 Cloudflare account credentials are outside the source-of-truth repository and outside ChatGPT conversation data.
 
-The guarded D1 provisioning workflow uses two GitHub Actions secrets:
+The D1 provisioning path uses two GitHub Actions secrets:
 - `CLOUDFLARE_ACCOUNT_ID`;
 - `CLOUDFLARE_D1_API_TOKEN`.
 
 Security rules:
 - never paste either secret value into chat, source files, issues, commits, workflow inputs, or logs;
-- prefer a dedicated D1 provisioning token scoped to the intended Cloudflare account and only the D1 write/edit permissions required for create/list/migration/query operations;
+- keep the D1 token scoped to the intended Cloudflare account and only D1 write/edit permissions required for create/list/migration/query operations;
 - do not reuse a global API key;
-- do not reuse a broad Worker deployment token when a narrower D1-only token is sufficient;
-- the workflow maps `CLOUDFLARE_D1_API_TOKEN` to Wrangler's `CLOUDFLARE_API_TOKEN` only inside steps that need remote D1 access;
-- provisioning runs only through manual `workflow_dispatch` and requires the literal `PROVISION_D1` confirmation;
-- the workflow is guarded to `task5-production-nano-payment` and does not run on push, pull request, schedule, or arbitrary branches;
-- the workflow does not deploy the Worker and does not invoke Pursekeeper payment verify/settle;
+- do not broaden the D1-only token merely to deploy the Worker; use a separate least-privilege Workers authorization path if deployment requires additional permission;
+- the workflow maps `CLOUDFLARE_D1_API_TOKEN` to Wrangler's `CLOUDFLARE_API_TOKEN` only inside remote D1 steps;
+- the permanent provisioning workflow is manual-only, branch-guarded, and does not deploy the Worker or invoke Pursekeeper payment verify/settle;
+- because GitHub does not surface a branch-only manual workflow from the default Actions UI, the initial real provisioning used a one-shot push-triggered launcher on an isolated temporary branch;
+- that launcher pinned the reviewed target branch SHA before remote mutation, checked the target again before pushing, and contained no Cloudflare credential values;
+- the one-shot launcher never ran on `main` and was removed from the temporary branch heads after success;
 - remote D1 probe data is synthetic, contains no client document/payment data, and is removed after validation;
-- the workflow refuses to silently replace one already-real D1 UUID with another;
-- the workflow refuses to push its public UUID update if the branch changed during provisioning.
+- provisioning refuses to silently replace one already-real D1 UUID with another.
 
-The D1 database UUID is a public configuration identifier, not a secret. It may be committed only after the workflow resolves it from the intended Cloudflare account and completes migration + remote non-payment validation successfully.
+The D1 database UUID is a public configuration identifier, not a secret. It was committed only after the workflow resolved it from the intended Cloudflare account and completed migration + remote non-payment validation successfully.
+
+## Real D1 Evidence
+Actions run `36280708030` established direct remote evidence for:
+- creation of `nano-json-lens-402-payment-state`;
+- public database ID `8cbbea4c-b368-40e5-a7c0-9d72bce2567e`;
+- application of `0001_payment_state.sql`;
+- successful remote query of `payment_operations`;
+- synthetic insert/read/CAS/read/delete behavior;
+- stale CAS exclusion (`unverified -> settling` made zero changes after the successful `unverified -> verified` transition).
+
+This evidence proves the remote D1 state backend behavior used by the project. It does not prove Worker deployment or payment acceptance.
 
 ## Vendor SDK Boundary
 The concrete `@x402/core` resource server is isolated behind `src/payment/production-resource-server.ts` rather than leaking vendor protocol types through the generic payment core.
@@ -84,7 +95,7 @@ The V1 production target is Cloudflare D1. The D1 adapter must preserve these in
 
 The atomic `confirmSettlement` store contract exists specifically to remove the prior crash gap in which `settled` could have been persisted before its entitlement receipt. The generic legacy receipt-write method remains for compatibility/local use but is not used by the production payment settlement path.
 
-Local D1 contract tests use Node's SQLite implementation to exercise the same SQL schema and statement behavior, including closing and reopening the database. This is evidence for SQL/state semantics, not proof that a remote Cloudflare D1 database has already been provisioned or deployed.
+Local SQLite tests and the remote D1 synthetic probe now provide complementary evidence: local tests cover the complete adapter/state contract including close/reopen persistence and receipt confirmation, while the remote probe confirms the production D1 service accepts the expected SQL write/read/CAS/delete pattern. Neither alone authorizes live payment-taking traffic.
 
 ## Availability
 The health endpoint must be inexpensive and independent of heavy processing. The 14-day requirement makes deployment and configuration failures operationally important.
