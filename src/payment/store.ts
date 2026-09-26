@@ -23,6 +23,10 @@ export interface PaymentStateStore {
     next: PaymentState,
   ): Promise<boolean>;
 
+  /** Atomically persist the confirmed receipt while transitioning settling -> settled. */
+  confirmSettlement(operationId: string, receipt: SettlementReceipt): Promise<boolean>;
+
+  /** Legacy/local helper; production settlement flow uses confirmSettlement instead. */
   saveSettlementReceipt(operationId: string, receipt: SettlementReceipt): Promise<void>;
   getSettlementReceipt(operationId: string): Promise<SettlementReceipt | undefined>;
 }
