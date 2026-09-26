@@ -1,24 +1,35 @@
 # CURRENT CHECKPOINT — Nano JSON Lens 402
 
 **Date:** 2026-09-26
-**Block:** 014 — Cloudflare Workers + D1 selected / durable payment state GREEN
-**Overall state:** TASK 5 IN PROGRESS / DURABLE D1 CONTRACT GREEN / REAL CLOUDFLARE PROVISIONING PENDING / LIVE VERIFY-SETTLE NOT STARTED / MAIN UNTOUCHED
+**Block:** 015 — Cloudflare Worker challenge-only runtime + bundle GREEN
+**Overall state:** TASK 5 IN PROGRESS / WORKER BUNDLE GREEN / CHALLENGE-ONLY RUNTIME GREEN / REAL D1 PROVISIONING + DEPLOYMENT PENDING / LIVE VERIFY-SETTLE NOT STARTED / MAIN UNTOUCHED
 
 ## Completed in this block
-- Selected **Cloudflare Workers Free + Cloudflare D1** as the V1 runtime/state target after reviewing current official free-tier limits and Node runtime compatibility.
-- Added implementation plan `docs/superpowers/plans/2026-09-26-cloudflare-d1-payment-state.md`.
-- Hardened `PaymentStateStore` with atomic `confirmSettlement(operationId, receipt)`.
-- TDD RED for atomic settlement: commit `77fe69b99aecd388cded72a45475be7dc0a137ca`, Actions run `36272330443`: 73 tests, 71 passed, exactly 2 new failures because `confirmSettlement` did not exist.
-- Changed the Nano payment gate so confirmed settlement state and entitlement receipt are committed by one store operation instead of two separate writes.
-- Added D1 migration `migrations/0001_payment_state.sql`.
-- Added `createD1PaymentStateStore` in `src/payment/d1-store.ts`, advertising `productionSafe === true`.
-- D1 TDD RED: commit `2181891b66b823da137b068f6bd53d5412afbe05`; the new D1 suite failed because `src/payment/d1-store.ts` did not exist while prior tests remained green.
-- The D1 store uses unique payment identity and operation ID constraints, conditional SQL updates for CAS, and one conditional SQL update for `settling -> settled` plus receipt persistence.
-- D1 receipts are validated again when read.
-- Test harness uses Node SQLite with the same migration/statement contract and proves state + receipt persist after closing and reopening the database.
-- Production composition explicitly accepts the D1 store and continues to reject `MemoryPaymentStateStore`.
-- GREEN evidence: commit `7c32b52fc898713539a92861ce89dbe34485792e`, Actions run `36272741695`: **78/78 tests passed**, typecheck passed, dependency tree passed, production audit reported 0 vulnerabilities.
-- Updated Security, Operations, Roadmap, and Execution Ledger for the runtime/state decision and settlement atomicity rule.
+- Added implementation plan `docs/superpowers/plans/2026-09-26-cloudflare-worker-runtime.md`.
+- Added TDD coverage for the Cloudflare Worker runtime before implementation.
+- Worker runtime RED evidence: commit `cec9527df7efbad669800b8665b6ba8f298c3ff2`, Actions run `36273945075`: all 78 pre-existing tests passed and the only failure was `ERR_MODULE_NOT_FOUND` for `src/worker-runtime.ts`.
+- Corrected one test fixture that had accidentally included a query string even though the existing `/api/lens` contract rejects query parameters before the payment gate.
+- Added `src/worker-runtime.ts`.
+- `GET /health` remains independent of D1 and x402 initialization.
+- `/api/lens` requires HTTPS and a valid `PAYMENT_DB` binding; missing storage fails closed before bootstrap.
+- Production resource URLs are normalized to the incoming HTTPS origin plus the fixed `/api/lens` path.
+- The runtime can be held in challenge-only mode so submitted proofs are rejected before facilitator verify/settle.
+- Added a TDD production Worker entrypoint contract.
+- Worker entrypoint RED evidence: commit `611745110056db1cdfd3f1b3dbfcb8621889c9fa`, Actions run `36274072390`: pre-existing/runtime tests remained green and the new import failed exactly because `src/worker.ts` did not exist.
+- Added `src/worker.ts` with fixed approved facilitator/payTo/price configuration.
+- Added source-controlled `PAID_TRAFFIC_ENABLED = false`; account/environment configuration cannot enable paid traffic during this rollout stage.
+- Initial entrypoint CI correctly exposed a latent TypeScript contract mismatch between the generic local `ResourceServerLike` and the concrete pinned `x402ResourceServer`. Runtime tests were already green; typecheck failed.
+- Systematic root-cause analysis showed that payment configuration and resource metadata were being represented too broadly in the local adapter contract and that the concrete SDK has stricter `ResourceConfig`, `ResourceInfo`, `PaymentRequirements`, and `PaymentPayload` types.
+- Refactored the local core into explicit `PaymentResourceConfig` and `PaymentResourceInfo` contracts and isolated the concrete pinned x402 SDK behind `src/payment/production-resource-server.ts`.
+- The production boundary now validates/converts requirements, resource metadata, decoded payment payloads, and facilitator results instead of spreading vendor protocol types through the generic payment core.
+- Adapter GREEN evidence: commit `e36bb26ddf2cf20ca9dc4a0bf20a2b39eff7517d`, Actions run `36274568426`: 84 tests, typecheck, dependency-tree validation, and production audit all passed.
+- Added `wrangler.jsonc` using Worker entrypoint `src/worker.ts`, compatibility date `2026-09-26`, D1 binding `PAYMENT_DB`, and migration directory `migrations`.
+- The committed D1 `database_id` is intentionally `00000000-0000-0000-0000-000000000000`; it is a provisioning placeholder, not a real database ID.
+- Added exact Wrangler bundle validation to Task 5 CI: `npx --yes wrangler@4.137.0 deploy --dry-run`.
+- Bundle evidence: commit `98752af61ca7a317cd29a7c1a250d5ce66d13d60`, Actions run `36274618113`, job `108494824442`.
+- That run passed 84/84 tests, typecheck, Wrangler dry-run, full dependency-tree validation, and production audit with 0 vulnerabilities.
+- Wrangler successfully bundled the actual Worker entrypoint and recognized `env.PAYMENT_DB` as a D1 Database binding. Reported dry-run bundle size was 2067.29 KiB upload / 287.95 KiB gzip.
+- Updated Operations, Security, Roadmap, implementation plan, and continuity documents for the challenge-only rollout.
 
 ## Active payment rulings
 - `requestDigest` is local service metadata, not cryptographic binding between Nano payment and submitted JSON.
@@ -29,14 +40,27 @@
 - D1 payment identity and operation ID uniqueness are database-enforced.
 - Settlement confirmation must atomically persist both `settled` state and bounded receipt.
 - Stale or ambiguous settlement writes fail closed; do not add automatic settlement write retries.
+- `PAID_TRAFFIC_ENABLED` remains source-controlled `false`; no environment setting can bypass this rollout gate.
+- A submitted proof in challenge-only mode must never reach facilitator verify/settle.
+- `/api/lens` requires HTTPS and valid durable payment-state storage; missing D1 state fails closed.
+- `GET /health` remains independent from payment infrastructure.
+- Concrete x402 SDK types are trusted only after explicit validation/conversion at the production adapter boundary.
 - No Nano seed/private key is stored or required.
 
-## Deployment decision
+## Deployment target and configuration
 - Runtime target: Cloudflare Workers Free.
 - Persistent state target: Cloudflare D1.
+- Worker entrypoint: `src/worker.ts`.
+- Runtime adapter: `src/worker-runtime.ts`.
 - Migration: `migrations/0001_payment_state.sql`.
 - Production store: `src/payment/d1-store.ts`.
-- The selected free-tier limits must be rechecked immediately before deployment because provider limits can change.
+- Wrangler config: `wrangler.jsonc`.
+- D1 binding name: `PAYMENT_DB`.
+- D1 database name: `nano-json-lens-402-payment-state`.
+- Current `database_id`: zero UUID placeholder only; replace after real provisioning.
+- Wrangler CI version: `4.137.0`.
+- Compatibility date: `2026-09-26`.
+- Provider free-tier limits must be rechecked immediately before actual deployment because they can change.
 
 ## Payment parameters
 - Network: `nano:mainnet`.
@@ -48,16 +72,18 @@
 - Public payTo: `nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt`.
 
 ## Scope of evidence
-The D1 adapter and migration have been validated locally through a SQLite-backed D1 contract harness, including close/reopen persistence. **No real Cloudflare D1 database or Worker has been provisioned or deployed yet.** No payment proof was submitted. No live verify or settle call was made. No Nano transfer occurred. The 14-day reachability window has not started.
+The Cloudflare Worker source, runtime composition, D1 binding declaration, and deploy bundle have been validated without deploying them. The current CI dry-run proves bundling/configuration compatibility only. **No real Cloudflare D1 database has been created, no real D1 database ID has been committed, no migration has been applied remotely, and no Worker has been deployed.** No payment proof has reached the facilitator. No live verify or settle call was made. No Nano transfer occurred. The 14-day reachability window has not started.
 
 ## Exact next step
 Continue Task 5 on `task5-production-nano-payment`:
-1. prepare the Cloudflare Worker entrypoint and deployment configuration without enabling paid traffic;
-2. provision a real free D1 database and apply `0001_payment_state.sql`;
-3. bind that D1 database to the Worker and validate state write/read/CAS against the real binding;
-4. deploy and test `GET /health` and an unpaid `POST /api/lens` 402 externally;
-5. rerun security/CI evidence after real runtime integration;
-6. only after the real D1 binding and deployed 402 are GREEN consider the first controlled live verify/settle payment test.
+1. authenticate to the intended Cloudflare account and create `nano-json-lens-402-payment-state` using the pinned Wrangler version;
+2. replace the zero UUID placeholder in `wrangler.jsonc` with the returned real D1 `database_id`;
+3. list and apply `migrations/0001_payment_state.sql` to the remote D1 database;
+4. perform controlled **non-payment** write/read/CAS validation against the real `PAYMENT_DB` binding;
+5. deploy the Worker while `PAID_TRAFFIC_ENABLED === false`;
+6. externally verify `GET /health` and an unpaid `POST /api/lens` 402;
+7. rerun security/CI evidence after the real runtime integration;
+8. only after all of the above are independently GREEN may a future block consider the first controlled live verify/settle payment test.
 
 ## Continuity
-All repository artifacts remain in English; private operator conversation remains in Portuguese. Keep work blocks approximately 15 minutes and update this checkpoint at every block closure. `main` remains untouched until isolated Task 5 work is verified and explicitly integrated. Do not claim a deployed D1 service or Pursekeeper paid-call acceptance from local D1 contract tests.
+All repository artifacts remain in English; private operator conversation remains in Portuguese. Keep work blocks approximately 15 minutes and update this checkpoint at every block closure. `main` remains untouched until isolated Task 5 work is verified and explicitly integrated. Do not claim a deployed D1 service, deployed Worker, Pursekeeper paid-call acceptance, or start of the 14-day window from dry-run bundle evidence alone.
