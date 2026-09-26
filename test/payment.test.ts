@@ -19,6 +19,13 @@ interface FakeRequirements {
   extra?: Record<string, unknown>;
 }
 
+interface FakeConfig {
+  scheme?: unknown;
+  network?: unknown;
+  payTo?: unknown;
+  extra?: unknown;
+}
+
 function fakeServer(options: {
   verifyValid?: boolean;
   settleSuccess?: boolean;
@@ -29,18 +36,24 @@ function fakeServer(options: {
   return {
     calls,
     server: {
-      async buildPaymentRequirements(config: Record<string, unknown>) {
+      async buildPaymentRequirements(config: Record<string, unknown>): Promise<FakeRequirements[]> {
         calls.push('build');
+        const typed = config as FakeConfig;
+        if (typeof typed.scheme !== 'string' || typeof typed.network !== 'string' ||
+            typeof typed.payTo !== 'string' ||
+            (typed.extra !== undefined && (typed.extra === null || typeof typed.extra !== 'object' || Array.isArray(typed.extra)))) {
+          throw new Error('invalid test payment config');
+        }
         return [{
-          scheme: config.scheme,
-          network: config.network,
+          scheme: typed.scheme,
+          network: typed.network,
           asset: 'XNO',
           amount,
-          payTo: config.payTo,
-          extra: config.extra,
-        } satisfies FakeRequirements];
+          payTo: typed.payTo,
+          ...(typed.extra === undefined ? {} : { extra: typed.extra as Record<string, unknown> }),
+        }];
       },
-      async createPaymentRequiredResponse(requirements: unknown[], resource: Record<string, unknown>) {
+      async createPaymentRequiredResponse(requirements: FakeRequirements[], resource: Record<string, unknown>) {
         calls.push('challenge');
         return { x402Version: 2, resource, accepts: requirements };
       },
