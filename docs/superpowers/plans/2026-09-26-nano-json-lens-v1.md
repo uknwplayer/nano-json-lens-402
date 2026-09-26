@@ -57,10 +57,10 @@
 
 **Interfaces:** Produces `analyze(value: JsonValue): Analysis` and `compare(before: JsonValue, after: JsonValue): Change[]`, with `Analysis` and `Change` fields exactly as in the spec. Expose `buildLensResult(request: LensRequest): LensResult` with preflight response limit enforcement.
 
-- [ ] Write failing fixtures for reordered objects/hash equality, arrays, Unicode ordering, RFC 6901 pointers, primitive roots, metrics, same-value comparison, additions/removals/type/value changes, deterministic change order, and 1,000-node/depth-32/128 KiB limits.
-- [ ] Run `npm test -- test/lens.test.ts`; confirm failure.
-- [ ] Implement canonical serialization, SHA-256, bounds, path map and diff; do not claim RFC 8785 compliance.
-- [ ] Run focused and full tests; commit and update checkpoint.
+- [x] Write failing fixtures for reordered objects/hash equality, arrays, Unicode ordering, RFC 6901 pointers, primitive roots, metrics, same-value comparison, additions/removals/type/value changes, deterministic change order, and 1,000-node/depth-32/128 KiB limits.
+- [x] Run `npm test -- test/lens.test.ts`; confirm failure.
+- [x] Implement canonical serialization, SHA-256, bounds, path map and diff; do not claim RFC 8785 compliance.
+- [x] Run focused and full tests; commit and update checkpoint.
 
 ### Task 4: Public HTTP Surface
 

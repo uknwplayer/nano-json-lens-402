@@ -34,12 +34,12 @@ Block 004 evidence: [protocol validation](protocol/NANO_402_WIRE_EXAMPLES.md). T
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
 - [x] Duplicate-key, byte, depth and node limit tests (14 tests).
-- [ ] Deterministic canonicalization.
-- [ ] SHA-256.
-- [ ] Structural metrics.
-- [ ] Path/type map.
-- [ ] Before/after diff.
-- [ ] Unit tests and edge cases.
+- [x] Deterministic canonicalization.
+- [x] SHA-256.
+- [x] Structural metrics.
+- [x] Path/type map.
+- [x] Before/after diff.
+- [x] Unit tests and edge cases.
 
 ## Phase 3 — Nano 402
 - [ ] Unpaid request returns correct 402 challenge.

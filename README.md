@@ -11,8 +11,8 @@ The project is also designed to satisfy Pursekeeper's seller newcomer credit req
 **English is the official language of this project.** Repository content, source code, comments, API fields, public errors, operational logs, documentation, releases, issues, and customer-facing communication must be written in English.
 
 ## Status
-**Current phase:** strict request parser implemented and tested; JSON analysis core next.
-**Endpoint implementation:** request parsing module complete; HTTP and payments not implemented.
+**Current phase:** request parser and JSON analysis core implemented and tested; HTTP integration next.
+**Endpoint implementation:** parser and analysis modules complete; HTTP and payments not implemented.
 **Deployment:** not started.
 
 Always consult:
@@ -75,4 +75,12 @@ npm run typecheck
 
 `src/request.ts` validates bounded UTF-8 JSON input without network or payment operations. It exports `parseLensRequest`, `LensRequest`, `JsonValue`, and `LensError`. The parser uses pinned `jsonc-parser` 3.3.1 with comments and trailing commas disabled, checks duplicate decoded keys, then uses native `JSON.parse` for the value. Numeric values use JavaScript binary64 semantics; non-finite results are rejected. Exact arbitrary-precision decimal preservation is not provided.
 
-Current verification: 14 parser tests passing. No HTTP endpoint or hosted service is available yet.
+Current verification: 24 tests passing (14 parser + 10 analysis). No HTTP endpoint or hosted service is available yet.
+
+## Local Analysis Example
+
+```bash
+node --input-type=module -e 'import { buildLensResult } from "./src/lens.ts"; console.log(JSON.stringify(buildLensResult({mode:"document",document:{b:2,a:1}}),null,2))'
+```
+
+`src/lens.ts` exports `analyze`, `compare`, and `buildLensResult`. Keys and pointers use Unicode code-point order; array order is preserved. The SHA-256 covers the canonical JSON's UTF-8 bytes. Comparison reports added, removed, type-changed and value-changed paths, without copying values into the change entries. Analysis results still contain the canonical documents requested by the caller. Results over 128 KiB are rejected before payment integration can deliver them.

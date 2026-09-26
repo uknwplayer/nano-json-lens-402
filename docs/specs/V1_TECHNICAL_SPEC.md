@@ -1,6 +1,6 @@
 # V1 Technical Specification
 
-**Status:** design approved by the operator on 2026-09-26; external integration gates remain open. **Date:** 2026-09-26. Request parsing is implemented; analysis, HTTP, payments and deployment remain pending.
+**Status:** design approved by the operator on 2026-09-26; external integration gates remain open. **Date:** 2026-09-26. Request parsing and analysis are implemented; HTTP, payments and deployment remain pending.
 
 ## Purpose and acceptance
 Provide a public, useful, deterministic JSON analysis endpoint paid in Nano mainnet, with no paid upstream dependency. Success requires an unpaid HTTP 402 challenge advertising a price and receiving address, a successful Pursekeeper-paid call returning real analysis, public payment code, and 14 days of reachability. These are external acceptance criteria, not evidence of completion.

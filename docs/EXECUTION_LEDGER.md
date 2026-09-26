@@ -13,3 +13,16 @@ Evidence: initial test run found the missing implementation; after an empty expo
 Task 2: complete. Tests cover input modes, strict grammar, duplicates, separate-object keys, prototype-related keys, media types, raw byte bounds, invalid UTF-8, document depth, node count, numeric overflow and sanitized errors.
 Task 1: partial; receiving address, hosting validation and payment recovery design still open.
 Tasks 3–6: not started. No live payments or deployment.
+
+## Block 006 / Task 3
+Base: a08198480d3ae4ebf4c06996bfd4caac51a69e06.
+
+Implemented analyze(JsonValue): Analysis, compare(JsonValue, JsonValue): Change[], and buildLensResult(LensRequest): LensResult in src/lens.ts. Pure local computation; Node crypto SHA-256; no network or payment calls.
+
+Ten new tests were written before implementation and failed against empty scaffolds. The initial output-limit fixture actually produced 128346 bytes, below 131072: corrected the fixture from 700 to 750 members, keeping input under 65536 bytes. This corrected a test assumption, not the production limit. Final npm test: 24/24 passed; npm run typecheck: exit 0; git diff --check: exit 0. npm still reports the pre-existing environment http-proxy warning.
+
+Task 3: complete. Covered literal hash vector, reordered objects, numeric-looking/Unicode keys, string escapes, array order, UTF-8 size, metrics, escaped pointers, primitive roots, subtrees, index-based diff, missing/null distinction, output order, direct-call depth/node bounds and amplified output limits.
+
+Ruling: compare validates both inputs via analyze; buildLensResult reuses its validated inputs with a private diff helper. Cost: standalone comparison performs extra hashing, but all entry points preserve input limits. Final envelope size is checked in addition to bounded canonical/path/change accumulators. Cloudflare compatibility and CPU allowance remain unverified.
+
+Task 1: partial. Tasks 4–6: not started. Final whole-service review remains pending until implementation is complete.
