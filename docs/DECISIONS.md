@@ -26,11 +26,10 @@ All repository content, source code, code comments, API fields, public error mes
 
 ## Open Decisions
 - deployment runtime/provider;
-- final Nano x402 library/version;
-- facilitator;
 - final price;
 - public Nano address;
-- payload limits;
+- durable replay/idempotency storage and retention;
+- facilitator reconciliation capabilities;
 - license.
 
 ## D-007 — Direct Execution Approved
@@ -57,4 +56,16 @@ Ruling: early depth/node checks move forward from Task 3 into Task 2 to protect 
 **Status:** implemented in Block 007
 Use the standard Request/Response Fetch interface to support a later Node or Workers adapter. No server bootstrap is configured yet. An explicit PaymentGate is mandatory; test doubles are confined to test code. Buffer bounded useful output before settlement and release only after the adapter reports a valid settlement receipt. Compute a raw-body SHA-256 for the adapter, without claiming that the digest by itself cryptographically binds a Nano payment.
 
-Default body timeout is 5000 ms; maximum body 65536 bytes and payment header 16384 characters. All responses disable caching. Adapter errors become sanitized 503 responses. Ambiguous settlement, retry policy and durable replay state must be solved in Task 5 before public operation.
+Default body timeout is 5000 ms; maximum body 65536 bytes and payment header 16384 characters. All responses disable caching. Adapter errors become sanitized 503 responses.
+
+## D-012 — Fail-Closed Payment Binding and Idempotency
+**Status:** design approved on 2026-09-26; implementation pending
+Security for both seller and payer is the priority. Use a fail-closed payment state machine: `unverified -> verified -> settling -> settled -> fulfilled`. Only confirmed settlement can authorize fulfillment. Ambiguous settlement never becomes free access and must not trigger blind re-settlement or a second charge.
+
+Bind each protected operation to a deterministic request identifier covering a version/domain separator, HTTP method, route, canonical payload hash, expected price, network and receiving address. The exact serialization must be unambiguous (for example length-prefixed or canonical structured encoding) before hashing.
+
+Associate payment evidence with that request identity. Reusing the same proof/payment for a modified request is rejected. Acquisition of a request/payment identity must be atomic so concurrent copies cannot settle or fulfill multiple times.
+
+Legitimate identical retries are idempotent: after a network failure, the service should recover the already-authorized state/result where safe instead of demanding a new payment. Persist only minimal non-secret replay/reconciliation metadata; do not retain customer JSON merely for payment safety.
+
+Production remains blocked until durable state/retention and facilitator settlement-reconciliation behavior are resolved and tested.
