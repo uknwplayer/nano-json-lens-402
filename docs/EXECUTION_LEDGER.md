@@ -122,3 +122,20 @@ A one-shot read-only workflow then exercised the real pinned packages against `h
 Ruling: supported synchronization proves startup capability compatibility only. It does not prove paid-call acceptance. Real verify/settle remains blocked until the initialized resource server is wired into the production gate and the actual 402 challenge path is inspected under tests.
 
 Task 5 remains IN PROGRESS. No payment proof, live verify, live settle, Nano transfer, public deployment, or 14-day window occurred in Block 012. Exact next step is to compose only a `ready` bootstrap into the production `PaymentGate` and prove the real 402 challenge before any payment attempt.
+
+## Block 013 / Task 5 — strict production gate composition and real 402 challenge
+Branch: task5-production-nano-payment.
+
+TDD RED evidence: commit `ea20fc736f35a17b821dc22b7b9a978da65abf0c`, Actions run `36271247940`, produced 69 tests total, 68 passed, 1 failed exactly with `ERR_MODULE_NOT_FOUND` for `src/payment/production-gate.ts`.
+
+Implemented `createProductionNanoPaymentGate` behind a stricter production-only boundary. A production gate may be constructed only when the supplied bootstrap reports `ready`, and the supplied `PaymentStateStore` must advertise `productionSafe === true`. `MemoryPaymentStateStore` is explicitly rejected from this production path. The generic `createNanoPaymentGate` remains intentionally looser for isolated tests and non-production challenge inspection.
+
+The first implementation passed all 71 runtime tests but typecheck correctly rejected the test helper because generic `ReturnType` erased the concrete resource-server contract. Only the test helper typing was corrected; production behavior did not change. GREEN evidence: commit `513867d8665a90121f2101b3442cf6815f8d0f96`, Actions run `36271337667`: tests, typecheck, dependency-tree validation, and production dependency audit all passed.
+
+After GREEN, a one-shot workflow initialized the real pinned production bootstrap against Pursekeeper and sent a valid unpaid `POST /api/lens` through the real Fetch handler. No `payment-signature` header was supplied, so verify/settle and replay-state methods were unreachable. Live challenge evidence: commit `7982b98b5bffd7df9ac23f06c068da8031182ed7`, Actions run `36271390574`, job `108485910965`. The response was HTTP 402 with x402 version 2, scheme `exact`, network `nano:mainnet`, asset `XNO`, amount `10000000000000000000000000000` raw, the expected public payTo, matching request-digest metadata, and a `payment-required` header that decoded to the same challenge object present in the JSON response body. The probe explicitly recorded `paymentSubmitted: false`.
+
+The temporary live challenge workflow was removed after evidence capture in commit `ce35024df0bc81eb5107fdc0faeff9513743887b`.
+
+Ruling: a correct real 402 challenge is now proven, but payment-taking production readiness is still blocked. The repository has only a process-local memory store implementation, which is not durable across restart/redeploy and advertises `productionSafe = false`. Before any live verify or settle attempt, the final deployment runtime and a persistent replay/settlement state backend must be selected, implemented, and tested for the required durability semantics.
+
+Task 5 remains IN PROGRESS. No payment proof, live verify, live settle, Nano transfer, public deployment, or 14-day window occurred in Block 013. Exact next step is to select the free production runtime/storage combination and implement a truly production-safe persistent `PaymentStateStore` before the first paid-call test.
