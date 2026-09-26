@@ -77,7 +77,21 @@ function fakeServer(options: {
   };
 }
 
-function proof(accepted: Partial<FakeRequirements> = {}) {
+const nanoBlock = {
+  type: 'state',
+  account: payTo,
+  previous: 'A'.repeat(64),
+  representative: payTo,
+  balance: '123456789',
+  link: 'B'.repeat(64),
+  signature: 'C'.repeat(128),
+  work: 'D'.repeat(16),
+};
+
+function proof(
+  accepted: Partial<FakeRequirements> = {},
+  envelope: Record<string, unknown> = {},
+) {
   return Buffer.from(JSON.stringify({
     x402Version: 2,
     accepted: {
@@ -85,7 +99,8 @@ function proof(accepted: Partial<FakeRequirements> = {}) {
       extra: { requestDigest: context.requestDigest },
       ...accepted,
     },
-    payload: { block: { type: 'state', signature: 'test-only' } },
+    payload: { block: nanoBlock },
+    ...envelope,
   }), 'utf8').toString('base64');
 }
 
@@ -178,6 +193,18 @@ test('concurrent replay of one proof can reach settlement at most once', async (
 
   assert.equal(fake.calls.filter(call => call === 'settle').length, 1);
   assert.equal(results.filter(result => result.settled).length, 1);
+});
+
+test('equivalent envelopes for one Nano block cannot settle twice', async () => {
+  const fake = fakeServer();
+  const { gate } = setup(fake, new MemoryPaymentStateStore());
+
+  const first = await gate.verifyAndSettle(context, proof({}, { envelopeNote: 'first' }));
+  const second = await gate.verifyAndSettle(context, proof({}, { envelopeNote: 'second' }));
+
+  assert.equal(first.settled, true);
+  assert.equal(second.settled, true);
+  assert.equal(fake.calls.filter(call => call === 'settle').length, 1);
 });
 
 test('retry after confirmed settlement is idempotent and never settles twice', async () => {
