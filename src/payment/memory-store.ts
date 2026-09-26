@@ -1,3 +1,4 @@
+import type { SettlementReceipt } from '../server.ts';
 import type { PaymentState } from './state.ts';
 import type { PaymentClaimResult, PaymentStateStore } from './store.ts';
 
@@ -8,6 +9,7 @@ interface PaymentBinding {
 
 interface OperationRecord {
   state: PaymentState;
+  receipt?: SettlementReceipt;
 }
 
 /**
@@ -56,5 +58,18 @@ export class MemoryPaymentStateStore implements PaymentStateStore {
 
     record.state = next;
     return true;
+  }
+
+  async saveSettlementReceipt(operationId: string, receipt: SettlementReceipt): Promise<void> {
+    const record = this.operations.get(operationId);
+    if (record === undefined || record.state !== 'settled') {
+      throw new Error('Settlement receipt can only be stored for a settled operation.');
+    }
+    record.receipt = Object.freeze({ ...receipt });
+  }
+
+  async getSettlementReceipt(operationId: string): Promise<SettlementReceipt | undefined> {
+    const receipt = this.operations.get(operationId)?.receipt;
+    return receipt === undefined ? undefined : Object.freeze({ ...receipt });
   }
 }
