@@ -13,24 +13,12 @@ function fakeResourceServer() {
   return {
     async initialize(): Promise<void> {},
     async buildPaymentRequirements(config: Record<string, unknown>) {
-      return [{
-        scheme: 'exact',
-        network: 'nano:mainnet',
-        asset: 'XNO',
-        amount: '10000000000000000000000000000',
-        payTo,
-        extra: config.extra as Record<string, unknown>,
-      }];
+      return [{ scheme: 'exact', network: 'nano:mainnet', asset: 'XNO', amount: '10000000000000000000000000000', payTo,
+        extra: config.extra as Record<string, unknown> }];
     },
-    async createPaymentRequiredResponse(requirements: unknown[]) {
-      return { x402Version: 2, accepts: requirements };
-    },
-    async verifyPayment() {
-      return { isValid: false };
-    },
-    async settlePayment() {
-      throw new Error('settlement must not be reached in composition tests');
-    },
+    async createPaymentRequiredResponse(requirements: unknown[]) { return { x402Version: 2, accepts: requirements }; },
+    async verifyPayment() { return { isValid: false }; },
+    async settlePayment() { throw new Error('settlement must not be reached in composition tests'); },
   };
 }
 
@@ -41,49 +29,31 @@ class ProductionSafeTestStore implements PaymentStateStore {
   async claimPayment() { return { status: 'claimed' } as const; }
   async getState(): Promise<PaymentState | undefined> { return undefined; }
   async compareAndSetState(): Promise<boolean> { return false; }
+  async confirmSettlement(): Promise<boolean> { return false; }
   async saveSettlementReceipt(_operationId: string, _receipt: SettlementReceipt): Promise<void> {}
   async getSettlementReceipt(): Promise<SettlementReceipt | undefined> { return undefined; }
 }
 
 function options(bootstrap: PaymentBootstrap<FakeResourceServer>, stateStore: PaymentStateStore) {
-  return {
-    bootstrap,
-    stateStore,
-    payTo,
-    priceXno: '0.01',
-    facilitatorUrl: 'https://facilitator.pursekeeper.dev',
-  };
+  return { bootstrap, stateStore, payTo, priceXno: '0.01', facilitatorUrl: 'https://facilitator.pursekeeper.dev' };
 }
 
 test('production payment gate rejects a cold bootstrap', () => {
   const bootstrap = createPaymentBootstrap(fakeResourceServer());
-
-  assert.throws(
-    () => createProductionNanoPaymentGate(options(bootstrap, new ProductionSafeTestStore())),
-    /ready/i,
-  );
+  assert.throws(() => createProductionNanoPaymentGate(options(bootstrap, new ProductionSafeTestStore())), /ready/i);
 });
 
 test('production payment gate rejects a non-production replay store', async () => {
   const bootstrap = createPaymentBootstrap(fakeResourceServer());
   await bootstrap.initialize();
-
-  assert.throws(
-    () => createProductionNanoPaymentGate(options(bootstrap, new MemoryPaymentStateStore())),
-    /production-safe/i,
-  );
+  assert.throws(() => createProductionNanoPaymentGate(options(bootstrap, new MemoryPaymentStateStore())), /production-safe/i);
 });
 
 test('production payment gate wires only a ready resource server into the Nano gate', async () => {
   const bootstrap = createPaymentBootstrap(fakeResourceServer());
   await bootstrap.initialize();
-
   const gate = createProductionNanoPaymentGate(options(bootstrap, new ProductionSafeTestStore()));
-  const challenge = await gate.challenge({
-    requestDigest: 'a'.repeat(64),
-    resourceUrl: 'https://seller.example/api/lens',
-  });
-
+  const challenge = await gate.challenge({ requestDigest: 'a'.repeat(64), resourceUrl: 'https://seller.example/api/lens' });
   assert.equal(challenge.x402Version, 2);
   const accepts = challenge.accepts as Array<Record<string, unknown>>;
   assert.equal(accepts.length, 1);
