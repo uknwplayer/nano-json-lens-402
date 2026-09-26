@@ -11,7 +11,7 @@ The project is also designed to satisfy Pursekeeper's seller newcomer credit req
 **English is the official language of this project.** Repository content, source code, comments, API fields, public errors, operational logs, documentation, releases, issues, and customer-facing communication must be written in English.
 
 ## Status
-**Current phase:** documentation foundation complete; technical specification next.  
+**Current phase:** specification and execution plan approved; protocol validation in progress.  
 **Endpoint implementation:** not started.  
 **Deployment:** not started.
 
@@ -20,6 +20,9 @@ Always consult:
 - [Roadmap](docs/ROADMAP.md)
 - [Whitepaper](docs/WHITEPAPER.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [V1 specification](docs/specs/V1_TECHNICAL_SPEC.md)
+- [Implementation plan](docs/superpowers/plans/2026-09-26-nano-json-lens-v1.md)
+- [Protocol evidence](docs/protocol/NANO_402_WIRE_EXAMPLES.md)
 - [Pursekeeper acceptance criteria](docs/PURSEKEEPER_ACCEPTANCE.md)
 - [Continuity rules](docs/CONTINUITY_RULES.md)
 
