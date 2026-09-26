@@ -1,4 +1,3 @@
-import type { ResourceConfig } from '@x402/core/server';
 import type {
   PaymentContext,
   PaymentGate,
@@ -8,20 +7,35 @@ import type {
 import { deriveNanoBlockPaymentIdentity, deriveOperationId } from './payment/identity.ts';
 import type { PaymentStateStore } from './payment/store.ts';
 
-interface PaymentRequirements {
+export interface PaymentRequirements {
   scheme: string;
   network: string;
   asset: string;
   amount: string;
   payTo: string;
+  maxTimeoutSeconds?: number;
   extra?: Record<string, unknown>;
 }
 
+export interface PaymentResourceConfig extends Record<string, unknown> {
+  scheme: string;
+  network: string;
+  price: string;
+  payTo: string;
+  extra?: Record<string, unknown>;
+}
+
+export interface PaymentResourceInfo extends Record<string, unknown> {
+  url: string;
+  description?: string;
+  mimeType?: string;
+}
+
 export interface ResourceServerLike {
-  buildPaymentRequirements(config: ResourceConfig): Promise<PaymentRequirements[]>;
+  buildPaymentRequirements(config: PaymentResourceConfig): Promise<PaymentRequirements[]>;
   createPaymentRequiredResponse(
     requirements: PaymentRequirements[],
-    resource: Record<string, unknown>,
+    resource: PaymentResourceInfo,
   ): Promise<Record<string, unknown>>;
   verifyPayment(payload: unknown, requirements: PaymentRequirements): Promise<{ isValid: boolean }>;
   settlePayment(payload: unknown, requirements: PaymentRequirements): Promise<Record<string, unknown>>;
@@ -112,8 +126,6 @@ export function createNanoPaymentGate(options: NanoPaymentGateOptions): PaymentG
       network: NETWORK,
       price: options.priceXno,
       payTo: options.payTo,
-      description: 'Deterministic JSON structural analysis',
-      mimeType: 'application/json',
       extra: { requestDigest: context.requestDigest },
     });
     if (built.length !== 1) throw new Error('Unexpected payment requirements.');
