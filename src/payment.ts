@@ -16,7 +16,7 @@ interface PaymentRequirements {
   extra?: Record<string, unknown>;
 }
 
-interface ResourceServerLike {
+export interface ResourceServerLike {
   buildPaymentRequirements(config: Record<string, unknown>): Promise<PaymentRequirements[]>;
   createPaymentRequiredResponse(
     requirements: PaymentRequirements[],
