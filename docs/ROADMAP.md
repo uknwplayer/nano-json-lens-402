@@ -14,7 +14,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Initial security and operations documents.
 - [x] Current checkpoint.
 - [x] Establish English as the official project language.
-- [ ] Approve technical specification before implementation.
+- [x] Approve technical specification before implementation.
 
 ## Phase 1 — Specification
 - [ ] Freeze V1 HTTP contract.
@@ -24,7 +24,12 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [ ] Freeze initial price.
 - [ ] Select runtime/deployment.
 - [ ] Define payload limits and error schema.
-- [ ] Produce testable implementation plan.
+- [x] Produce testable implementation plan.
+- [x] Operator approved direct execution of the plan.
+- [x] Inspect official Nano x402 package and confirm npm 0.3.0 metadata.
+- [x] Read live facilitator /supported for exact / nano:mainnet.
+
+Block 004 evidence: [protocol validation](protocol/NANO_402_WIRE_EXAMPLES.md). Task 1 remains partial: address, runtime compatibility, exact dependency lock and recovery behavior are pending. Package discovery is not a passing payment integration test.
 
 ## Phase 2 — JSON Lens Core
 - [ ] Deterministic canonicalization.
