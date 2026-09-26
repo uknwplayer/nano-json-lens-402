@@ -103,3 +103,22 @@ The test was corrected to prove the offline contract that is actually guaranteed
 Verification: final branch state at commit eeb483d01e852b27dc72b62f23a70445c3d1cabc, Actions run 36270214290. `npm ci` succeeded; `npm test` passed 65/65; `npm run typecheck` passed; `npm ls --all` validated the locked tree; `npm audit --omit=dev --audit-level=moderate` reported 0 vulnerabilities.
 
 Task 5 remains IN PROGRESS. Exact next step is a test-first runtime/bootstrap initialization boundary, followed by controlled read-only facilitator capability synchronization and then wiring the initialized resource server into the real payment startup path. No real payment, live facilitator initialize/verify/settle, deployment, or 14-day window occurred in Block 011.
+
+## Block 012 / Task 5 — fail-closed bootstrap and live supported synchronization
+Branch: task5-production-nano-payment.
+
+TDD RED evidence: commit `ee1a91c95ef61aa027d493bc4ab518d5d0677db9`, Actions run `36270643615`, produced 66 tests total, 65 passed, 1 failed exactly with `ERR_MODULE_NOT_FOUND` for `src/payment/bootstrap.ts`.
+
+Implemented `createPaymentBootstrap` as an explicit payment-readiness state machine: `cold -> initializing -> ready` on success and `cold -> initializing -> failed` on initialization failure. The wrapped resource server is withheld before `ready`. Concurrent callers share one initialization attempt. A failed bootstrap is terminal for that instance and does not automatically retry an uncertain upstream initialization.
+
+Added `createProductionNanoPaymentBootstrap` to wrap the real pinned production Nano resource server behind the fail-closed boundary. Construction remains offline.
+
+GREEN evidence: commit `ac54388710652ac1590586e108850d5706190b4c`, Actions run `36270714787`: `npm test` passed 68/68, typecheck passed, `npm ls --all` passed, and `npm audit --omit=dev --audit-level=moderate` reported 0 vulnerabilities.
+
+Before live initialization, reviewed the x402 resource-server path: initialization loads facilitator capabilities via `getSupported()`, and the HTTP facilitator client performs `GET /supported`. No verify or settle operation is part of initialization.
+
+A one-shot read-only workflow then exercised the real pinned packages against `https://facilitator.pursekeeper.dev`. Live evidence: commit `abbec8688e7cd27211678f9f790e24b566fedcf6`, Actions run `36270824058`, job `108484312333`. The bootstrap reached `ready` and built the expected requirements: scheme `exact`, network `nano:mainnet`, asset `XNO`, amount `10000000000000000000000000000` raw, and the expected public receiving address. The temporary probe workflow was deleted immediately after evidence capture.
+
+Ruling: supported synchronization proves startup capability compatibility only. It does not prove paid-call acceptance. Real verify/settle remains blocked until the initialized resource server is wired into the production gate and the actual 402 challenge path is inspected under tests.
+
+Task 5 remains IN PROGRESS. No payment proof, live verify, live settle, Nano transfer, public deployment, or 14-day window occurred in Block 012. Exact next step is to compose only a `ready` bootstrap into the production `PaymentGate` and prove the real 402 challenge before any payment attempt.
