@@ -1,0 +1,248 @@
+name: Provision Cloudflare D1
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type PROVISION_D1 to create/reuse the D1 database and apply migrations'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nano-json-lens-402-cloudflare-d1-provision
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DB_NAME: nano-json-lens-402-payment-state
+      DB_BINDING: PAYMENT_DB
+      WRANGLER_VERSION: '4.137.0'
+    steps:
+      - name: Guard branch and explicit confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/task5-production-nano-payment" ]]; then
+            echo "::error::Provisioning is allowed only from task5-production-nano-payment."
+            exit 1
+          fi
+          if [[ "$CONFIRMATION" != "PROVISION_D1" ]]; then
+            echo "::error::Explicit PROVISION_D1 confirmation is required."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: task5-production-nano-payment
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install locked helper dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Verify rollout remains challenge-only
+        run: |
+          set -euo pipefail
+          grep -Fq 'export const PAID_TRAFFIC_ENABLED = false as const;' src/worker.ts
+          grep -Fq '"database_id": "00000000-0000-0000-0000-000000000000"' wrangler.jsonc || \
+            grep -Eq '"database_id": "[0-9a-fA-F-]{36}"' wrangler.jsonc
+
+      - name: Validate Cloudflare credentials are present
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_ACCOUNT_ID."
+            exit 1
+          fi
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_D1_API_TOKEN."
+            exit 1
+          fi
+
+      - name: Provision or reuse the intended D1 database
+        id: provision
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp
+
+          read_database_id() {
+            DB_LIST_FILE=.tmp/d1-list.json node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const list = JSON.parse(readFileSync(process.env.DB_LIST_FILE, 'utf8'));
+          if (!Array.isArray(list)) throw new Error('Unexpected Wrangler d1 list JSON shape.');
+          const matches = list.filter(item => item && typeof item === 'object' && item.name === process.env.DB_NAME);
+          if (matches.length > 1) throw new Error('Multiple D1 databases with the intended name were returned.');
+          if (matches.length === 0) process.exit(0);
+          const id = matches[0].uuid ?? matches[0].id;
+          if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+            throw new Error('Wrangler returned an invalid D1 database UUID.');
+          }
+          process.stdout.write(id);
+          NODE
+          }
+
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 list --json > .tmp/d1-list.json
+          DB_ID="$(read_database_id)"
+
+          if [[ -z "$DB_ID" ]]; then
+            npx --yes "wrangler@${WRANGLER_VERSION}" d1 create "$DB_NAME"
+            npx --yes "wrangler@${WRANGLER_VERSION}" d1 list --json > .tmp/d1-list.json
+            DB_ID="$(read_database_id)"
+          fi
+
+          if [[ -z "$DB_ID" ]]; then
+            echo "::error::D1 database ID could not be resolved after provisioning."
+            exit 1
+          fi
+
+          echo "db_id=$DB_ID" >> "$GITHUB_OUTPUT"
+          echo "Resolved D1 database: $DB_NAME ($DB_ID)"
+
+      - name: Finalize the public D1 binding configuration
+        env:
+          DB_ID: ${{ steps.provision.outputs.db_id }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import { finalizeD1DatabaseConfig } from './scripts/cloudflare/d1-config.ts';
+
+          const path = 'wrangler.jsonc';
+          const before = readFileSync(path, 'utf8');
+          const after = finalizeD1DatabaseConfig(before, process.env.DB_ID ?? '');
+          if (after !== before) writeFileSync(path, after, 'utf8');
+          NODE
+
+      - name: Apply remote migration and validate schema
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 migrations list "$DB_BINDING" --remote
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 migrations apply "$DB_BINDING" --remote
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$DB_BINDING" \
+            --remote --yes --command 'SELECT COUNT(*) AS row_count FROM payment_operations;' --json > .tmp/schema-check.json
+          test -s .tmp/schema-check.json
+
+      - name: Probe remote write read and compare-and-set semantics
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_D1_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          PROBE_SEED="cloudflare-d1-probe:${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}"
+          PAYMENT_ID="$(printf '%s' "${PROBE_SEED}:payment" | sha256sum | awk '{print $1}')"
+          REQUEST_ID="$(printf '%s' "${PROBE_SEED}:request" | sha256sum | awk '{print $1}')"
+          OPERATION_ID="$(printf '%s' "${PROBE_SEED}:operation" | sha256sum | awk '{print $1}')"
+
+          cleanup() {
+            set +e
+            npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$DB_BINDING" --remote --yes \
+              --command "DELETE FROM payment_operations WHERE operation_id = '${OPERATION_ID}';" >/dev/null 2>&1
+          }
+          trap cleanup EXIT
+
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$DB_BINDING" --remote --yes \
+            --command "INSERT INTO payment_operations (payment_identity, request_id, operation_id, state, receipt_json) VALUES ('${PAYMENT_ID}', '${REQUEST_ID}', '${OPERATION_ID}', 'unverified', NULL);"
+
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$DB_BINDING" --remote --yes --json \
+            --command "SELECT state FROM payment_operations WHERE operation_id = '${OPERATION_ID}';" > .tmp/probe-before.json
+
+          EXPECTED_STATE=unverified PROBE_FILE=.tmp/probe-before.json node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const value = JSON.parse(readFileSync(process.env.PROBE_FILE, 'utf8'));
+          const states = [];
+          const walk = node => {
+            if (Array.isArray(node)) return node.forEach(walk);
+            if (!node || typeof node !== 'object') return;
+            if (typeof node.state === 'string') states.push(node.state);
+            Object.values(node).forEach(walk);
+          };
+          walk(value);
+          if (!states.includes(process.env.EXPECTED_STATE)) throw new Error(`Expected state ${process.env.EXPECTED_STATE} was not returned.`);
+          NODE
+
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$DB_BINDING" --remote --yes \
+            --command "UPDATE payment_operations SET state = 'verified' WHERE operation_id = '${OPERATION_ID}' AND state = 'unverified';"
+
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$DB_BINDING" --remote --yes \
+            --command "UPDATE payment_operations SET state = 'settling' WHERE operation_id = '${OPERATION_ID}' AND state = 'unverified';"
+
+          npx --yes "wrangler@${WRANGLER_VERSION}" d1 execute "$DB_BINDING" --remote --yes --json \
+            --command "SELECT state FROM payment_operations WHERE operation_id = '${OPERATION_ID}';" > .tmp/probe-after.json
+
+          EXPECTED_STATE=verified PROBE_FILE=.tmp/probe-after.json node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const value = JSON.parse(readFileSync(process.env.PROBE_FILE, 'utf8'));
+          const states = [];
+          const walk = node => {
+            if (Array.isArray(node)) return node.forEach(walk);
+            if (!node || typeof node !== 'object') return;
+            if (typeof node.state === 'string') states.push(node.state);
+            Object.values(node).forEach(walk);
+          };
+          walk(value);
+          if (!states.includes(process.env.EXPECTED_STATE)) throw new Error(`Expected state ${process.env.EXPECTED_STATE} was not returned.`);
+          NODE
+
+          cleanup
+          trap - EXIT
+
+      - name: Commit only the public D1 database ID
+        env:
+          DB_ID: ${{ steps.provision.outputs.db_id }}
+        run: |
+          set -euo pipefail
+          git fetch origin task5-production-nano-payment
+          REMOTE_SHA="$(git rev-parse origin/task5-production-nano-payment)"
+          if [[ "$REMOTE_SHA" != "$GITHUB_SHA" ]]; then
+            echo "::error::Branch moved during provisioning. Refusing to push an automated config commit."
+            exit 1
+          fi
+
+          if git diff --quiet -- wrangler.jsonc; then
+            echo "wrangler.jsonc already contains D1 database $DB_ID; no commit needed."
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add wrangler.jsonc
+          git commit -m 'chore: bind provisioned Cloudflare D1'
+          git push origin HEAD:task5-production-nano-payment
+
+      - name: Provisioning summary
+        env:
+          DB_ID: ${{ steps.provision.outputs.db_id }}
+        run: |
+          {
+            echo '### Cloudflare D1 provisioning'
+            echo
+            echo "- Database: \`$DB_NAME\`"
+            echo "- Binding: \`$DB_BINDING\`"
+            echo "- Database ID: \`$DB_ID\`"
+            echo '- Migration: applied/verified'
+            echo '- Remote synthetic write/read/CAS probe: passed and cleaned up'
+            echo '- Worker deployment: not performed'
+            echo '- Paid traffic: remains source-controlled off'
+          } >> "$GITHUB_STEP_SUMMARY"
