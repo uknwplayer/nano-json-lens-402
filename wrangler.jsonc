@@ -1,0 +1,17 @@
+{
+  // Challenge-only deployment configuration. Replace this zero UUID only with the
+  // real ID returned by `wrangler d1 create nano-json-lens-402-payment-state`.
+  // PAID_TRAFFIC_ENABLED remains source-controlled false in src/worker.ts.
+  "name": "nano-json-lens-402",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "PAYMENT_DB",
+      "database_name": "nano-json-lens-402-payment-state",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
