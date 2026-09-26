@@ -6,6 +6,12 @@ const requestA = 'a'.repeat(64);
 const requestB = 'b'.repeat(64);
 const operationA = 'c'.repeat(64);
 const paymentA = 'nano-payment-A';
+const receipt = Object.freeze({
+  success: true as const,
+  transaction: 'd'.repeat(64),
+  network: 'nano:mainnet' as const,
+  payer: 'nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt',
+});
 
 test('first claimant atomically owns a payment identity', async () => {
   const store = new MemoryPaymentStateStore();
@@ -46,6 +52,26 @@ test('operation state compare-and-set prevents stale concurrent transitions', as
 
   assert.equal([first, second].filter(Boolean).length, 1);
   assert.equal(await store.getState(operationA), 'verified');
+});
+
+test('settlement confirmation atomically stores receipt with settling to settled transition', async () => {
+  const store = new MemoryPaymentStateStore();
+  await store.claimPayment(paymentA, requestA, operationA);
+  assert.equal(await store.compareAndSetState(operationA, 'unverified', 'verified'), true);
+  assert.equal(await store.compareAndSetState(operationA, 'verified', 'settling'), true);
+
+  assert.equal(await store.confirmSettlement(operationA, receipt), true);
+  assert.equal(await store.getState(operationA), 'settled');
+  assert.deepEqual(await store.getSettlementReceipt(operationA), receipt);
+});
+
+test('settlement confirmation fails closed from a stale state and stores no receipt', async () => {
+  const store = new MemoryPaymentStateStore();
+  await store.claimPayment(paymentA, requestA, operationA);
+
+  assert.equal(await store.confirmSettlement(operationA, receipt), false);
+  assert.equal(await store.getState(operationA), 'unverified');
+  assert.equal(await store.getSettlementReceipt(operationA), undefined);
 });
 
 test('memory store does not survive a new instance and is explicitly non-production', async () => {
