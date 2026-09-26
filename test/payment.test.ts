@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createNanoPaymentGate } from '../src/payment.ts';
-import { deriveOperationId, digestPaymentEvidence } from '../src/payment/identity.ts';
+import { deriveNanoBlockPaymentIdentity, deriveOperationId } from '../src/payment/identity.ts';
 import { MemoryPaymentStateStore } from '../src/payment/memory-store.ts';
 import type { PaymentContext } from '../src/server.ts';
 
@@ -225,7 +225,10 @@ test('ambiguous settlement becomes settlement_unknown and retry cannot settle ag
   const fake = fakeServer({ throwSettle: true });
   const { gate } = setup(fake, stateStore);
   const paymentProof = proof();
-  const operationId = deriveOperationId(context.requestDigest, digestPaymentEvidence(paymentProof));
+  const decoded = JSON.parse(Buffer.from(paymentProof, 'base64').toString('utf8')) as unknown;
+  const paymentIdentity = deriveNanoBlockPaymentIdentity(decoded);
+  assert.notEqual(paymentIdentity, undefined);
+  const operationId = deriveOperationId(context.requestDigest, paymentIdentity!);
 
   await assert.rejects(() => gate.verifyAndSettle(context, paymentProof));
   assert.equal(await stateStore.getState(operationId), 'settlement_unknown');
