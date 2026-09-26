@@ -89,5 +89,5 @@
 
 - [x] **Step 1: Record RED/GREEN CI evidence and runtime security rulings.**
 - [x] **Step 2: Mark Worker adapter/configuration complete but real D1 provisioning/deployment pending.**
-- [ ] **Step 3: Run final HEAD CI and require tests, typecheck, dependency checks, audit, and Wrangler dry-run GREEN.**
-- [ ] **Step 4: Archive checkpoint 015.**
+- [x] **Step 3: Run final HEAD CI and require tests, typecheck, dependency checks, audit, and Wrangler dry-run GREEN.** Evidence: Actions run `36274979510` on commit `ab249bc70aad97effb461f3925b00a12884a4f8e`.
+- [x] **Step 4: Archive checkpoint 015.**
