@@ -152,7 +152,13 @@ export function createNanoPaymentGate(options: NanoPaymentGateOptions): PaymentG
           context.requestDigest,
           operationId,
         );
-        if (claim.status !== 'claimed') return { settled: false };
+        if (claim.status === 'conflict') return { settled: false };
+        if (claim.status === 'existing') {
+          const state = await options.stateStore.getState(claim.operationId);
+          if (state !== 'settled' && state !== 'fulfilled') return { settled: false };
+          const receipt = await options.stateStore.getSettlementReceipt(claim.operationId);
+          return receipt === undefined ? { settled: false } : { settled: true, receipt };
+        }
       }
 
       const requirement = await requirements(context);
@@ -191,6 +197,7 @@ export function createNanoPaymentGate(options: NanoPaymentGateOptions): PaymentG
       if (operationId !== undefined) {
         const settled = await options.stateStore!.compareAndSetState(operationId, 'settling', 'settled');
         if (!settled) throw new Error('Settlement state could not be confirmed.');
+        await options.stateStore!.saveSettlementReceipt(operationId, receipt);
       }
       return { settled: true, receipt };
     },
