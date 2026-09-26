@@ -4,6 +4,8 @@ import type {
   PaymentOutcome,
   SettlementReceipt,
 } from './server.ts';
+import { deriveOperationId, digestPaymentEvidence } from './payment/identity.ts';
+import type { PaymentStateStore } from './payment/store.ts';
 
 interface PaymentRequirements {
   scheme: string;
@@ -30,6 +32,8 @@ export interface NanoPaymentGateOptions {
   readonly facilitatorUrl: string;
   /** Injected x402 resource server. Production construction is added only after package validation. */
   readonly resourceServer: ResourceServerLike;
+  /** Required for replay protection. Memory stores are suitable only for tests/local development. */
+  readonly stateStore?: PaymentStateStore;
 }
 
 const NETWORK = 'nano:mainnet';
@@ -137,14 +141,57 @@ export function createNanoPaymentGate(options: NanoPaymentGateOptions): PaymentG
         return { settled: false };
       }
 
+      let operationId: string | undefined;
+      if (options.stateStore !== undefined) {
+        // Until the Nano adapter exposes a stronger stable protocol/on-chain identity,
+        // the exact payment evidence digest is the conservative replay key.
+        const paymentIdentity = digestPaymentEvidence(proof);
+        operationId = deriveOperationId(context.requestDigest, paymentIdentity);
+        const claim = await options.stateStore.claimPayment(
+          paymentIdentity,
+          context.requestDigest,
+          operationId,
+        );
+        if (claim.status !== 'claimed') return { settled: false };
+      }
+
       const requirement = await requirements(context);
       const verification = await options.resourceServer.verifyPayment(payload, requirement);
       if (verification.isValid !== true) return { settled: false };
 
-      const settlement = await options.resourceServer.settlePayment(payload, requirement);
-      if (settlement.success !== true) return { settled: false };
+      if (operationId !== undefined) {
+        const verified = await options.stateStore!.compareAndSetState(operationId, 'unverified', 'verified');
+        if (!verified) return { settled: false };
+        const settling = await options.stateStore!.compareAndSetState(operationId, 'verified', 'settling');
+        if (!settling) return { settled: false };
+      }
+
+      let settlement: Record<string, unknown>;
+      try {
+        settlement = await options.resourceServer.settlePayment(payload, requirement);
+      } catch (cause) {
+        if (operationId !== undefined) {
+          await options.stateStore!.compareAndSetState(operationId, 'settling', 'settlement_unknown');
+        }
+        throw cause;
+      }
+      if (settlement.success !== true) {
+        if (operationId !== undefined) {
+          await options.stateStore!.compareAndSetState(operationId, 'settling', 'settlement_unknown');
+        }
+        return { settled: false };
+      }
       const receipt = boundedReceipt(settlement);
-      if (receipt === undefined) throw new Error('Settlement response could not be confirmed.');
+      if (receipt === undefined) {
+        if (operationId !== undefined) {
+          await options.stateStore!.compareAndSetState(operationId, 'settling', 'settlement_unknown');
+        }
+        throw new Error('Settlement response could not be confirmed.');
+      }
+      if (operationId !== undefined) {
+        const settled = await options.stateStore!.compareAndSetState(operationId, 'settling', 'settled');
+        if (!settled) throw new Error('Settlement state could not be confirmed.');
+      }
       return { settled: true, receipt };
     },
   });
