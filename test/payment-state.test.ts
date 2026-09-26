@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { transitionPaymentState } from '../src/payment/state.ts';
+import { transitionPaymentState, type PaymentState } from '../src/payment/state.ts';
 
 test('normal payment lifecycle reaches fulfilled only through confirmed settlement', () => {
-  let state = 'unverified' as const;
+  let state: PaymentState = 'unverified';
   state = transitionPaymentState(state, 'verified');
   state = transitionPaymentState(state, 'settling');
   state = transitionPaymentState(state, 'settled');
