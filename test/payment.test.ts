@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createNanoPaymentGate } from '../src/payment.ts';
+import { MemoryPaymentStateStore } from '../src/payment/memory-store.ts';
 import type { PaymentContext } from '../src/server.ts';
 
 const payTo = 'nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt';
@@ -31,6 +32,7 @@ function fakeServer(options: {
   settleSuccess?: boolean;
   throwVerify?: boolean;
   throwSettle?: boolean;
+  settleDelayMs?: number;
 } = {}) {
   const calls: string[] = [];
   return {
@@ -64,6 +66,7 @@ function fakeServer(options: {
       },
       async settlePayment() {
         calls.push('settle');
+        if (options.settleDelayMs) await new Promise(resolve => setTimeout(resolve, options.settleDelayMs));
         if (options.throwSettle) throw new Error('private settle failure');
         return options.settleSuccess === false
           ? { success: false, errorReason: 'rejected' }
@@ -85,7 +88,7 @@ function proof(accepted: Partial<FakeRequirements> = {}) {
   }), 'utf8').toString('base64');
 }
 
-function setup(fake = fakeServer()) {
+function setup(fake = fakeServer(), stateStore?: MemoryPaymentStateStore) {
   return {
     fake,
     gate: createNanoPaymentGate({
@@ -93,6 +96,7 @@ function setup(fake = fakeServer()) {
       priceXno: '0.01',
       facilitatorUrl: 'https://facilitator.pursekeeper.dev',
       resourceServer: fake.server,
+      ...(stateStore === undefined ? {} : { stateStore }),
     }),
   };
 }
@@ -159,4 +163,18 @@ test('successful settlement returns only bounded receipt metadata', async () => 
     receipt: { success: true, transaction: 'b'.repeat(64), network: 'nano:mainnet', payer: 'nano_test_payer' },
   });
   assert.deepEqual(fake.calls, ['build', 'verify', 'settle']);
+});
+
+test('concurrent replay of one proof can reach settlement at most once', async () => {
+  const fake = fakeServer({ settleDelayMs: 20 });
+  const { gate } = setup(fake, new MemoryPaymentStateStore());
+  const paymentProof = proof();
+
+  const results = await Promise.all([
+    gate.verifyAndSettle(context, paymentProof),
+    gate.verifyAndSettle(context, paymentProof),
+  ]);
+
+  assert.equal(fake.calls.filter(call => call === 'settle').length, 1);
+  assert.equal(results.filter(result => result.settled).length, 1);
 });
