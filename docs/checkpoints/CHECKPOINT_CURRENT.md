@@ -1,40 +1,44 @@
 # CURRENT CHECKPOINT — Nano JSON Lens 402
 
 **Date:** 2026-09-26
-**Block:** 021 — local paid runtime GREEN / guarded payment-enable workflow GREEN / production payment still hard-off
-**Overall state:** TASK 5 IN PROGRESS / REAL D1 GREEN / PUBLIC CHALLENGE-ONLY WORKER GREEN / LOCAL PAID RUNTIME GREEN / PAID-ENABLE DEPLOYMENT PATH GREEN / PAID TRAFFIC HARD-OFF / LIVE VERIFY-SETTLE NOT STARTED / EXPLICIT OPERATOR AUTHORIZATION REQUIRED / MAIN UNTOUCHED
+**Block:** 022 — production paid traffic enabled / payment-capable Worker deployed GREEN / no valid live payment yet
+**Overall state:** TASK 5 IN PROGRESS / REAL D1 GREEN / PAYMENT-CAPABLE PUBLIC WORKER GREEN / UNPAID 402 GREEN / MALFORMED-PROOF REJECTION GREEN / FIRST VALID LIVE PAYMENT NOT YET ATTEMPTED / PURSEKEEPER SUBMISSION NEXT / MAIN UNTOUCHED
 
 ## Completed in this block
-- Rechecked the Block 020 closing CI after it had previously appeared stuck in `npm ci`: Actions run `36283176906` eventually completed `success` with tests, typecheck, Wrangler dry-run, dependency-tree validation, and production audit all GREEN.
-- Began execution of `docs/superpowers/plans/2026-09-26-paid-rollout-and-pursekeeper-submission.md` without changing the production rollout constant.
-- Task 1 added Worker-level regression coverage for `allowPaidTraffic: true` using the existing durable D1 contract and a structurally valid local Nano state-block proof fixture.
-- Ruling: the plan expected the new paid-runtime assertions to establish RED before implementation, but the paid branch already existed in `createCloudflareWorkerRuntime`. The new tests passed immediately, proving existing behavior. No production code was changed merely to manufacture a failing test.
-- Task 1 evidence: commit `4987076673b7ab70afc54579c49236c107976f22`, Actions run `36284474392`, job `108522484660`: 92/92 tests passed, typecheck passed, Wrangler `4.137.0` dry-run passed with the real `PAYMENT_DB` binding, dependency tree passed, and production audit reported 0 vulnerabilities.
-- The new paid-runtime tests prove that a structurally valid local proof in payment-enabled mode reaches exactly one verify and one settle, returns HTTP 200 with `payment-response`, and releases the promised JSON analysis only after confirmed settlement.
-- The same Worker-level suite proves malformed proof material in payment-enabled mode returns HTTP 402 without protected analysis, without `payment-response`, and without a settlement call.
-- Task 2 TDD RED evidence: commit `2120abfbca6b1c713157dc4694322c3e1b2e853d`, Actions run `36284519752`, job `108522615350`: 93 total tests, 92 passed, exactly one failed with `ENOENT` because `.github/workflows/cloudflare-worker-payment-enable.yml` did not yet exist.
-- Added `.github/workflows/cloudflare-worker-payment-enable.yml` as a distinct payment-enable deployment path; the existing challenge-only deployment workflow remains unchanged.
-- The payment-enable workflow is `workflow_dispatch` only, requires literal `ENABLE_PAID_TRAFFIC`, is restricted to `task5-production-nano-payment`, uses Wrangler `4.137.0`, validates the real D1 UUID and `PAYMENT_DB` binding, uses only the separate Workers deployment credential, and explicitly refuses to deploy unless source contains `PAID_TRAFFIC_ENABLED = true as const`.
-- Before any deployment mutation, that workflow reruns tests, typecheck, Wrangler dry-run, dependency-tree validation, and production audit.
-- After deployment it is limited to non-spending checks: bounded health readiness, unpaid exact Nano 402 terms, and deliberately malformed proof rejection. It contains no valid payment proof and no direct `verifyPayment` or `settlePayment` invocation.
-- Task 2 GREEN evidence: commit `7714311ad89e08ba97e0be24ad193fbcdb507a0a`, Actions run `36284707142`, job `108523139758`: 93/93 tests passed, typecheck passed, Wrangler dry-run passed, dependency tree passed, and production audit reported 0 vulnerabilities.
-- A temporary repository-write probe used while the connector rejected a direct workflow-file write was removed from the current tree in the workflow commit; it contained no credential or operational data.
+- Received explicit operator authorization to enable `PAID_TRAFFIC_ENABLED` and deploy the payment-capable Worker.
+- TDD RED: commit `8ea2c2a5f216ae08b9cecb6ab77e2425f686acfa`, Actions run `36285150057`, job `108524392146`: 93 tests total, 92 passed, exactly one failed because the production entrypoint still exported `PAID_TRAFFIC_ENABLED = false` while the new expectation required `true`.
+- Changed only the source-controlled rollout constant in `src/worker.ts` from `false` to `true` plus its explanatory comment. Price, public payTo, facilitator URL, network, D1 binding, replay logic, verification logic, settlement logic, and protected-result logic were not changed.
+- GREEN source commit: `1a34893a5fc9142645adf612af2a51601f5701bf`.
+- Actions run `36285178793`, job `108524476873`, completed successfully with 93/93 tests, typecheck, Wrangler `4.137.0` dry-run using the real D1 binding, dependency-tree validation, and production audit.
+- Diff review from Block 021 head `afc23b63e949125303333f3800ca630dfcdfdb7a` to the reviewed paid source changed only `src/worker.ts` and `test/worker-runtime.test.ts`.
+- Because the repository default branch does not expose this branch-local manual workflow in the GitHub UI, an isolated one-shot launcher branch `work/payment-enabled-deploy-022` was created and pinned to reviewed source SHA `1a34893a5fc9142645adf612af2a51601f5701bf`.
+- One-shot deployment evidence: Actions run `36285252016`, job `108524675284`, completed `success`.
+- The launcher checked out exactly the reviewed source SHA, revalidated `PAID_TRAFFIC_ENABLED = true`, real D1 ID `8cbbea4c-b368-40e5-a7c0-9d72bce2567e`, binding `PAYMENT_DB`, dedicated Workers credentials, and the complete verification suite before deployment.
+- Cloudflare deployment succeeded for Worker `nano-json-lens-402` at `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`.
+- New Cloudflare version ID: `a6c0291a-b90e-447a-949c-8090f382837a`.
+- Public post-deploy checks passed without spending Nano:
+  - `GET /health` = HTTP 200 with bounded `status=ok`, `version=1` contract;
+  - unpaid `POST /api/lens` = HTTP 402 with `payment-required` header and exact `nano:mainnet` / `exact` / `XNO` / expected raw amount / expected payTo terms;
+  - deliberately malformed `payment-signature: AAAA` = HTTP 402 `PAYMENT_REJECTED`, no `payment-response`, and no protected result.
+- No valid payment proof was generated or submitted by CI or by the operator in this block.
+- No live successful facilitator verify, live successful settlement, or Nano transfer was observed in this block.
+- After evidence capture, the temporary launcher branch was reset to the reviewed source SHA so the one-shot workflow is no longer present at its branch head.
 
 ## Active payment and rollout rulings
-- `PAID_TRAFFIC_ENABLED` remains source-controlled `false` in `src/worker.ts`.
-- The currently deployed Worker remains the Block 019 challenge-only version. No payment-capable Worker was deployed in Block 021.
-- The new payment-enable workflow is intentionally inert against the current source state: its source guard requires `PAID_TRAFFIC_ENABLED = true as const`, so it cannot be used to bypass the explicit rollout change.
-- Task 3 is a security-sensitive source change and deployment gate. Do not perform it from a generic continuation signal; obtain explicit operator authorization to enable paid traffic and deploy the payment-capable Worker.
-- Do not introduce a Nano buyer seed/private key for a self-payment test. Pursekeeper's required listing call remains the intended first valid live payment.
-- Unknown verify/settle transport state remains fail-closed. Do not automatically re-settle after ambiguity.
-- Real production replay/settlement state remains Cloudflare D1; `MemoryPaymentStateStore` remains forbidden in payment-taking production.
-- D1 and Workers Cloudflare credentials remain separate least-privilege GitHub Actions secrets.
+- `PAID_TRAFFIC_ENABLED` is now source-controlled `true` in `src/worker.ts`.
+- The public Worker is payment-capable: a structurally valid external proof can now reach the real production verification/settlement path.
+- The first valid live payment must remain Pursekeeper's own required seller-listing call; do not add a seller-side Nano seed/private key merely to self-pay.
+- Unknown verify/settle transport state remains fail-closed. Never automatically re-settle after an ambiguous settlement outcome.
+- Real production replay and settlement state remains Cloudflare D1; `MemoryPaymentStateStore` remains forbidden for production payment traffic.
+- D1 and Workers credentials remain separate least-privilege GitHub Actions secrets.
+- A malformed or structurally invalid proof is rejected locally before settlement and cannot release protected output.
 
 ## Deployment target and live configuration
 - Runtime: Cloudflare Workers Free.
 - Worker: `nano-json-lens-402`.
 - Public endpoint: `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`.
-- Currently deployed Cloudflare version ID: `36286ef2-2068-4c6c-a735-4d20f6e9b5ae` (challenge-only).
+- Current Cloudflare version ID: `a6c0291a-b90e-447a-949c-8090f382837a` (payment-capable).
+- Reviewed deployed source SHA: `1a34893a5fc9142645adf612af2a51601f5701bf`.
 - Persistent state: Cloudflare D1.
 - D1 binding: `PAYMENT_DB`.
 - D1 database ID: `8cbbea4c-b368-40e5-a7c0-9d72bce2567e`.
@@ -44,28 +48,24 @@
 - Public payTo: `nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt`.
 
 ## Explicit non-claims
-- production paid traffic: HARD-OFF;
-- payment-capable Worker deployed: NO;
+- payment-capable Worker deployed: YES;
+- valid live payment proof submitted: NO;
+- successful live facilitator verify: NOT YET OBSERVED;
+- successful live facilitator settle: NOT YET OBSERVED;
+- Nano transfer through this endpoint: NONE OBSERVED;
 - endpoint submitted to Pursekeeper: NO;
-- live facilitator verify: NOT STARTED;
-- live facilitator settle: NOT STARTED;
-- Nano transfer through this endpoint: NONE;
 - seller listing accepted: NO;
 - 10 XNO seller credit: NOT YET EARNED;
 - 14-day seller-credit clock: NOT STARTED.
 
-## Exact next step — requires explicit operator authorization
-Task 3 of the controlled rollout plan is now the next gate. Before changing anything, obtain an explicit authorization equivalent to:
-
-`Authorize enabling PAID_TRAFFIC_ENABLED and deploying the payment-capable Worker.`
-
-After that authorization only:
-1. change the production-entrypoint expectation test from `false` to `true` first and record RED;
-2. change exactly `PAID_TRAFFIC_ENABLED` to `true as const` in `src/worker.ts` without changing price, payTo, facilitator, network, D1 binding, or payment algorithms;
-3. run the complete verification suite and review the source diff;
-4. deploy only through `.github/workflows/cloudflare-worker-payment-enable.yml` with `ENABLE_PAID_TRAFFIC`;
-5. perform only non-spending public health/402/malformed-proof checks after deploy;
-6. do not submit the endpoint to Pursekeeper until the payment-capable deployment is independently GREEN.
+## Exact next step
+Execute Task 5 of `docs/superpowers/plans/2026-09-26-paid-rollout-and-pursekeeper-submission.md`:
+1. re-read the latest Pursekeeper seller eligibility thread immediately before submission;
+2. if instructions are unchanged, reply in the existing thread with the live endpoint URL, repository URL, price `0.01 XNO`, and a concise description of the deterministic JSON Lens utility;
+3. do not claim the seller checks have passed;
+4. record the submission timestamp/message ID;
+5. wait for Pursekeeper's own first paid listing call and treat it as the first controlled live payment;
+6. on any ambiguous settlement state, reconcile D1 and Nano state before any retry.
 
 ## Continuity
 All repository artifacts remain in English; private operator conversation remains in Portuguese. Keep work blocks approximately 15 minutes and update this checkpoint at every block closure. `main` remains untouched until isolated Task 5 work is verified and explicitly integrated.
