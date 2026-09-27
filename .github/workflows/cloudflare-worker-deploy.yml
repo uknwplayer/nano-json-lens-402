@@ -1,0 +1,161 @@
+name: Deploy Cloudflare Worker Challenge Only
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type DEPLOY_CHALLENGE_ONLY to deploy with paid traffic hard-disabled'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nano-json-lens-402-cloudflare-worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      WRANGLER_VERSION: '4.137.0'
+      EXPECTED_DB_ID: '8cbbea4c-b368-40e5-a7c0-9d72bce2567e'
+      EXPECTED_PAY_TO: 'nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt'
+      EXPECTED_AMOUNT: '10000000000000000000000000000'
+    steps:
+      - name: Guard branch and explicit confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/task5-production-nano-payment" ]]; then
+            echo "::error::Deployment is allowed only from task5-production-nano-payment."
+            exit 1
+          fi
+          if [[ "$CONFIRMATION" != "DEPLOY_CHALLENGE_ONLY" ]]; then
+            echo "::error::Explicit DEPLOY_CHALLENGE_ONLY confirmation is required."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Verify reviewed challenge-only source and real D1 binding
+        run: |
+          set -euo pipefail
+          grep -Fq 'export const PAID_TRAFFIC_ENABLED = false as const;' src/worker.ts
+          grep -Fq '"database_id": "8cbbea4c-b368-40e5-a7c0-9d72bce2567e"' wrangler.jsonc
+          grep -Fq '"binding": "PAYMENT_DB"' wrangler.jsonc
+
+      - name: Validate dedicated Workers credentials are present
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_ACCOUNT_ID."
+            exit 1
+          fi
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "::error::Missing GitHub secret CLOUDFLARE_WORKERS_API_TOKEN."
+            exit 1
+          fi
+
+      - name: Re-run pre-deployment verification
+        run: |
+          set -euo pipefail
+          npm test
+          npm run typecheck
+          npx --yes "wrangler@${WRANGLER_VERSION}" deploy --dry-run
+
+      - name: Deploy reviewed challenge-only Worker
+        id: deploy
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp
+          npx --yes "wrangler@${WRANGLER_VERSION}" deploy 2>&1 | tee .tmp/deploy.log
+          WORKER_URL="$(grep -Eo 'https://[A-Za-z0-9._-]+\.workers\.dev' .tmp/deploy.log | tail -n 1 || true)"
+          if [[ -z "$WORKER_URL" ]]; then
+            echo "::error::Wrangler completed without a discoverable workers.dev URL."
+            exit 1
+          fi
+          echo "worker_url=$WORKER_URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed challenge-only endpoint: $WORKER_URL"
+
+      - name: External GET /health
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.worker_url }}
+          EXPECTED_STATUS: '200'
+        run: |
+          set -euo pipefail
+          STATUS="$(curl --silent --show-error --location --max-time 20 --output .tmp/health.json --write-out '%{http_code}' "$WORKER_URL/health")"
+          if [[ "$STATUS" != "$EXPECTED_STATUS" ]]; then
+            echo "::error::GET /health returned HTTP $STATUS instead of $EXPECTED_STATUS."
+            cat .tmp/health.json
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const value = JSON.parse(readFileSync('.tmp/health.json', 'utf8'));
+          if (!value || typeof value !== 'object') throw new Error('Health response is not a JSON object.');
+          NODE
+
+      - name: External unpaid POST /api/lens
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.worker_url }}
+          EXPECTED_STATUS: '402'
+        run: |
+          set -euo pipefail
+          STATUS="$(curl --silent --show-error --location --max-time 30 \
+            --header 'content-type: application/json' \
+            --data '{"document":{"hello":"world"}}' \
+            --output .tmp/challenge.json --write-out '%{http_code}' \
+            "$WORKER_URL/api/lens")"
+          if [[ "$STATUS" != "$EXPECTED_STATUS" ]]; then
+            echo "::error::POST /api/lens returned HTTP $STATUS instead of $EXPECTED_STATUS."
+            cat .tmp/challenge.json
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const payload = JSON.parse(readFileSync('.tmp/challenge.json', 'utf8'));
+          const required = payload?.paymentRequirements;
+          const accepts = required?.accepts;
+          if (!required || typeof required !== 'object' || !Array.isArray(accepts) || accepts.length < 1) {
+            throw new Error('Expected x402 paymentRequirements.accepts challenge.');
+          }
+          const exact = accepts.find(item => item?.scheme === 'exact' && item?.network === 'nano:mainnet');
+          if (!exact) throw new Error('Expected exact / nano:mainnet requirement.');
+          if (exact.asset !== 'XNO') throw new Error('Expected XNO asset.');
+          if (exact.amount !== process.env.EXPECTED_AMOUNT) throw new Error('Unexpected Nano amount.');
+          if (exact.payTo !== process.env.EXPECTED_PAY_TO) throw new Error('Unexpected Nano payTo.');
+          if ('result' in payload) throw new Error('Protected result must not appear in an unpaid challenge.');
+          NODE
+
+      - name: Deployment summary
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.worker_url }}
+        run: |
+          {
+            echo '### Challenge-only Cloudflare Worker deployment'
+            echo
+            echo "- Endpoint: \`$WORKER_URL\`"
+            echo '- GET /health: HTTP 200'
+            echo '- POST /api/lens without payment: HTTP 402'
+            echo '- D1 binding: real provisioned PAYMENT_DB'
+            echo '- Paid traffic: source-controlled off'
+            echo '- Live payment verification/settlement: not exercised'
+          } >> "$GITHUB_STEP_SUMMARY"
