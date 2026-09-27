@@ -86,7 +86,10 @@ class FakeProtocol implements NanoProtocolAdapter {
   nextIdentity = paymentIdentity;
   verifyValid = true;
   settleSuccess = true;
+  settleTransaction = transaction;
+  settleNetwork = 'nano:mainnet';
   throwOnSettle = false;
+  settleBlocker?: Promise<void>;
   verifyCalls = 0;
   settleCalls = 0;
 
@@ -109,8 +112,9 @@ class FakeProtocol implements NanoProtocolAdapter {
   async settle() {
     this.settleCalls += 1;
     if (this.throwOnSettle) throw new Error('facilitator connection lost');
+    if (this.settleBlocker) await this.settleBlocker;
     return this.settleSuccess
-      ? { success: true as const, transaction, network: 'nano:mainnet' as const, payer: 'nano_test_payer' }
+      ? { success: true as const, transaction: this.settleTransaction, network: this.settleNetwork, payer: 'nano_test_payer' }
       : { success: false as const };
   }
 }
@@ -128,6 +132,14 @@ async function armValidProof(gate: ReturnType<typeof makeGate>) {
   gate.protocol.nextAccepted = structuredClone(gate.protocol.lastRequirement!);
 }
 
+async function waitFor(predicate: () => boolean) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (predicate()) return;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  }
+  throw new Error('test condition was not reached');
+}
+
 test('challenge binds mainnet amount, recipient, resource and request id', async () => {
   const setup = makeGate();
   const challenge = await setup.gate.challenge(context);
@@ -141,6 +153,14 @@ test('challenge binds mainnet amount, recipient, resource and request id', async
       payTo: base.payTo, extra: { requestId },
     }],
   });
+});
+
+test('malformed proof fails closed before verification or settlement', async () => {
+  const setup = makeGate();
+
+  assert.deepEqual(await setup.gate.verifyAndSettle(context, 'malformed'), { settled: false });
+  assert.equal(setup.protocol.verifyCalls, 0);
+  assert.equal(setup.protocol.settleCalls, 0);
 });
 
 test('mismatched accepted payment terms are rejected before facilitator verification', async () => {
@@ -186,6 +206,35 @@ test('successful settlement is idempotent for the same payment and request', asy
   assert.equal(setup.protocol.settleCalls, 1);
 });
 
+test('failed settlement is persisted and is not retried blindly', async () => {
+  const setup = makeGate();
+  await armValidProof(setup);
+  setup.protocol.settleSuccess = false;
+
+  assert.deepEqual(await setup.gate.verifyAndSettle(context, 'proof'), { settled: false });
+  setup.protocol.settleSuccess = true;
+  assert.deepEqual(await setup.gate.verifyAndSettle(context, 'proof'), { settled: false });
+  assert.equal(setup.protocol.settleCalls, 1);
+});
+
+test('concurrent copies of one proof acquire only one settlement attempt', async () => {
+  const setup = makeGate();
+  await armValidProof(setup);
+  let release!: () => void;
+  setup.protocol.settleBlocker = new Promise<void>((resolve) => { release = resolve; });
+
+  const first = setup.gate.verifyAndSettle(context, 'proof');
+  await waitFor(() => setup.protocol.settleCalls === 1);
+  await assert.rejects(
+    () => setup.gate.verifyAndSettle(context, 'proof'),
+    /settlement outcome is unknown/i,
+  );
+  release();
+
+  assert.equal((await first).settled, true);
+  assert.equal(setup.protocol.settleCalls, 1);
+});
+
 test('the same payment identity cannot authorize a different protected request', async () => {
   const setup = makeGate();
   await armValidProof(setup);
@@ -207,5 +256,22 @@ test('ambiguous settlement is persisted and never retried blindly', async () => 
   await assert.rejects(() => setup.gate.verifyAndSettle(context, 'proof'));
   setup.protocol.throwOnSettle = false;
   await assert.rejects(() => setup.gate.verifyAndSettle(context, 'proof'), /settlement outcome is unknown/i);
+  assert.equal(setup.protocol.settleCalls, 1);
+});
+
+test('malformed settlement success becomes unknown and cannot be retried blindly', async () => {
+  const setup = makeGate();
+  await armValidProof(setup);
+  setup.protocol.settleTransaction = 'not-a-transaction-hash';
+
+  await assert.rejects(
+    () => setup.gate.verifyAndSettle(context, 'proof'),
+    /untrusted settlement result/i,
+  );
+  setup.protocol.settleTransaction = transaction;
+  await assert.rejects(
+    () => setup.gate.verifyAndSettle(context, 'proof'),
+    /settlement outcome is unknown/i,
+  );
   assert.equal(setup.protocol.settleCalls, 1);
 });
