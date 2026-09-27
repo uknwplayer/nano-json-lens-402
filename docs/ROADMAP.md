@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Blocks 004 and 011–017 established protocol discovery, pinned package integration, fail-closed bootstrap, the real unpaid 402 path, D1 persistence architecture, a challenge-only Cloudflare Worker bundle, guarded D1 provisioning automation, and the real remotely migrated/validated D1 production state backend. Worker deployment remains pending.
+Blocks 004 and 011–018 established protocol discovery, pinned package integration, fail-closed bootstrap, the real unpaid 402 path, D1 persistence architecture, the challenge-only Cloudflare Worker runtime, real remotely validated D1 state, and a tested guarded Worker deployment path. Actual Worker deployment now waits only on separate least-privilege Workers authorization.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -72,9 +72,10 @@ Blocks 004 and 011–017 established protocol discovery, pinned package integrat
 - [x] Provision the real Cloudflare D1 database `nano-json-lens-402-payment-state`.
 - [x] Apply remote migration `0001_payment_state.sql`.
 - [x] Validate synthetic write/read/CAS/delete against the real remote D1 database.
+- [x] Add a guarded challenge-only Worker deployment workflow with dedicated Workers credential separation and public 200/402 post-deploy probes.
 - [ ] Enable payment-taking startup only after deployed state/runtime prerequisites are independently GREEN.
 
-Block 014 selected Cloudflare Workers Free + D1 and implemented the durable store/migration. Block 015 added the Worker runtime/entrypoint, hard-disabled paid traffic, and proved the bundle with Wrangler 4.137.0 dry-run. Block 016 added guarded provisioning automation. Block 017 used GitHub-held Cloudflare credentials through a one-shot isolated launcher because GitHub does not expose branch-only `workflow_dispatch` workflows in the default Actions UI. Actions run `36280708030` created D1 database `8cbbea4c-b368-40e5-a7c0-9d72bce2567e`, applied `0001_payment_state.sql`, passed the synthetic remote write/read/CAS/delete probe, and committed only the public database UUID. Live `verify`/`settle` have still not been called.
+Block 014 selected Cloudflare Workers Free + D1 and implemented the durable store/migration. Block 015 added the Worker runtime/entrypoint, hard-disabled paid traffic, and proved the bundle with Wrangler 4.137.0 dry-run. Block 016 added guarded provisioning automation. Block 017 created and remotely validated the real D1 database, applied the migration, passed the synthetic state probe, and committed only the public database UUID. Block 018 added and tested a separate challenge-only deployment workflow that refuses to reuse the D1 credential and requires `CLOUDFLARE_WORKERS_API_TOKEN`. No live `verify`/`settle` has occurred.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
@@ -84,6 +85,8 @@ Block 014 selected Cloudflare Workers Free + D1 and implemented the durable stor
 - [x] Add guarded remote D1 provisioning/migration automation.
 - [x] Provision/apply the real remote D1 migration.
 - [x] Validate the real D1 database before deployment.
+- [x] Add guarded challenge-only Worker deployment automation and external validation contract.
+- [ ] Create dedicated least-privilege Workers deployment authorization in GitHub Actions Secrets.
 - [ ] Deploy challenge-only Worker.
 - [ ] `POST /api/lens` live.
 - [ ] `GET /health` live.
