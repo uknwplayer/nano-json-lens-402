@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -23,7 +23,7 @@ function record(overrides: Partial<PaymentRecord> = {}): PaymentRecord {
   };
 }
 
-async function withDb(t: Parameters<typeof test>[1] extends (...args: infer A) => unknown ? A[0] : never) {
+async function withDb(t: TestContext) {
   const dir = await mkdtemp(join(tmpdir(), 'nano-json-lens-store-'));
   const path = join(dir, 'payments.sqlite');
   t.after(async () => rm(dir, { recursive: true, force: true }));
