@@ -138,3 +138,23 @@ No valid payment proof was generated or submitted in this block, so no successfu
 After evidence capture, the one-shot launcher branch was reset to the reviewed source SHA, removing the launcher workflow from its branch head.
 
 Ruling: the endpoint is now payment-capable and ready for seller submission, but listing acceptance, 10 XNO credit, and the 14-day clock must not be claimed until Pursekeeper confirms the corresponding client-side checks/event.
+
+## Block 024 / Task 5 — seller submission sent, awaiting Pursekeeper paid check
+Branch: `task5-production-nano-payment`.
+
+After re-reading the seller eligibility thread in Block 023 and receiving explicit operator send authorization, the seller-newcomer submission was sent as a reply in the existing thread.
+
+The message contained the live Worker endpoint, public repository, active implementation branch, price `0.01 XNO`, and a concise description of the deterministic JSON Lens utility. It explicitly stated that no valid self-payment had been made and that Pursekeeper's required seller-check paid call could be the first live paid call.
+
+Primary submission evidence:
+- Gmail message ID: `1a0e08c4daebfbfe`;
+- thread ID: `1a0de598cd4aa399`;
+- timestamp: `2026-09-27T01:48:06Z`.
+
+Operational incident: while attempting to read back the send result, the send action was invoked again and an identical duplicate was sent in the same thread 31 seconds later:
+- duplicate message ID: `1a0e08cc72239d50`;
+- timestamp: `2026-09-27T01:48:37Z`.
+
+No third email or corrective follow-up was sent. Ruling: do not resend the submission again; wait for Pursekeeper's checks and response. The duplicate does not change the endpoint, price, code, or payment state.
+
+No valid payment proof, successful live verify/settle, Nano transfer, listing acceptance, 10 XNO credit, or 14-day clock start is claimed at this block close.
