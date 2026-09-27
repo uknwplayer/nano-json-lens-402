@@ -5,13 +5,13 @@ A public, deterministic JSON structural analysis service protected by Nano payme
 ## Goal
 Provide a useful endpoint for agents and automation pipelines that accepts bounded JSON documents, charges a small amount in Nano mainnet, and returns reproducible structural analysis without relying on paid analysis APIs.
 
-The project is also being validated against Pursekeeper's seller newcomer program: a valid public 402 challenge, a successful paid call that delivers the promised utility, and continued public availability.
+The project is being validated through Pursekeeper's seller newcomer program: a valid public 402 challenge, a successful paid call that delivers the promised utility, and continued public availability.
 
 ## Project Language
 **English is the official language of this project.** Repository content, source code, comments, API fields, public errors, operational logs, documentation, releases, issues, and customer-facing communication must be written in English.
 
 ## Current Status
-**Service state:** public and payment-capable.
+**Service state:** public, payment-capable, listed by Pursekeeper, and in the confirmed 14-day reachability window.
 
 - Runtime: Cloudflare Workers.
 - Persistent payment state: Cloudflare D1.
@@ -26,7 +26,9 @@ The project is also being validated against Pursekeeper's seller newcomer progra
 - Active implementation branch: `task5-production-nano-payment`.
 - Current automated verification suite: 93 tests plus typecheck, Wrangler dry-run, dependency-tree validation, and production dependency audit.
 
-The endpoint has been submitted to Pursekeeper for the seller checks. The project is currently waiting for Pursekeeper's first valid paid listing call and confirmation. No seller-credit acceptance or 14-day clock is claimed until explicit client evidence exists.
+Pursekeeper completed the seller checks on 2026-09-27. The unpaid request returned the expected 402 contract, Pursekeeper's first real paid call settled through its facilitator and received HTTP 200 with the promised JSON Lens result, the seller was listed as `uknwplayer-json-lens`, and the first-stage 10 XNO credit was recorded as ledger entry 260.
+
+The 14-day reachability clock started on 2026-09-27. The second-stage 15 XNO is due after the probe has remained successful for 14 days, with Pursekeeper identifying 2026-10-11 as the relevant completion date, provided the payment-taking code remains public.
 
 Always consult:
 - [Current checkpoint](docs/checkpoints/CHECKPOINT_CURRENT.md)
@@ -95,12 +97,26 @@ The receiving address and D1 UUID are public configuration. Wallet seeds, privat
 `requestDigest` is service-local request metadata; it is not described as a cryptographic binding between the Nano block and submitted JSON. Nano settlement remains authoritative for payment finality.
 
 ## Availability and Pursekeeper State
-The Worker is public, HTTPS-enabled, D1-backed, and payment-capable. Non-spending production validation has confirmed:
-- `GET /health` = HTTP 200;
-- unpaid valid `POST /api/lens` = HTTP 402 with expected Nano mainnet terms;
-- malformed proof = HTTP 402 `PAYMENT_REJECTED` with no protected output.
+The Worker is public, HTTPS-enabled, D1-backed, payment-capable, and listed by Pursekeeper.
 
-The seller endpoint was submitted to Pursekeeper on 2026-09-27. The project is waiting for the seller check. Do not infer seller acceptance, prepaid-call credit, successful live settlement, or the start of the 14-day reachability period until explicit evidence is recorded in the current checkpoint.
+Pursekeeper reported the three production checks ran at 04:28–04:30 UTC on 2026-09-27:
+- unpaid `POST /api/lens` returned HTTP 402 with the expected `PAYMENT-REQUIRED` Nano mainnet terms;
+- the first real paid call settled through the Pursekeeper facilitator and returned HTTP 200 with canonical form, SHA-256, size/depth metrics, and path information for the submitted document;
+- `/health` answered and the paid route remained reachable under the seller probe.
+
+First paid-call send block:
+`BB290B0B406FF6705B42430C4B0082EF9DEC3792FA34825BDE06DC9CADAF635E`
+
+Seller listing: `uknwplayer-json-lens` at `https://pursekeeper.dev/sellers`.
+
+First-stage credit: 10 XNO, Pursekeeper ledger entry 260.
+
+Confirmed 14-day window:
+- start: 2026-09-27;
+- expected completion date identified by Pursekeeper: 2026-10-11;
+- requirement: keep the reachability probe passing and the payment-taking code public.
+
+If the public `payTo` or paid route changes, Pursekeeper must be told the same day so the listing does not become stale.
 
 ## Local Development
 Requires Node.js 24 or newer.
