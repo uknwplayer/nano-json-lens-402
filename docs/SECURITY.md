@@ -35,7 +35,7 @@ The deployed Cloudflare Worker retains an explicit source-level payment barrier:
 - `GET /health` remains independent of D1 and facilitator readiness;
 - the production resource URL is derived from the incoming origin plus fixed `/api/lens`, not arbitrary client-provided URL data.
 
-Changing `PAID_TRAFFIC_ENABLED` is a future security-sensitive source change. It must not occur until the payment-enabled runtime is proven locally, a separately guarded payment-enable deployment path is GREEN, the live payment/reconciliation plan is reviewed, and the operator explicitly authorizes the source change and deployment.
+Changing `PAID_TRAFFIC_ENABLED` is a future security-sensitive source change. Local payment-enabled runtime behavior and a separately guarded payment-enable deployment path are now GREEN, but the source gate must remain `false` until the operator explicitly authorizes the paid-traffic source change and deployment.
 
 ## Cloudflare Credentials
 Cloudflare credentials stay outside repository content and ChatGPT conversation data.
@@ -109,6 +109,24 @@ The controlled rollout plan is `docs/superpowers/plans/2026-09-26-paid-rollout-a
 - submission to Pursekeeper only after the Worker is genuinely payment-capable;
 - Pursekeeper's own first paid listing call as the first controlled real payment;
 - reconciliation before any retry after an ambiguous settlement outcome.
+
+## Paid-Enable Guard Evidence
+Block 021 completed the two prerequisites immediately before source-level payment enablement.
+
+Local runtime evidence: Actions run `36284474392`, job `108522484660`, passed 92/92 tests and proves that payment-enabled mode releases protected output only after one confirmed local verify/settle sequence. Malformed proof remains non-settling and non-leaking.
+
+Dedicated workflow evidence: Actions run `36284707142`, job `108523139758`, passed 93/93 tests plus typecheck, Wrangler dry-run, dependency-tree validation and production audit. `.github/workflows/cloudflare-worker-payment-enable.yml`:
+- is manual-only and branch-guarded;
+- requires literal `ENABLE_PAID_TRAFFIC` confirmation;
+- requires source-level `PAID_TRAFFIC_ENABLED = true as const` before deployment;
+- validates the real D1 binding;
+- uses only the separate Workers deployment token;
+- reruns the complete verification suite before deployment;
+- generates no valid payment proof in CI;
+- performs only health, unpaid 402, and malformed-proof checks after deployment;
+- contains no direct `verifyPayment` or `settlePayment` call.
+
+Because the repository still contains `PAID_TRAFFIC_ENABLED = false as const`, this workflow is currently inert for deployment and cannot bypass the operator authorization gate.
 
 ## Vendor SDK Boundary
 The concrete `@x402/core` resource server is isolated behind `src/payment/production-resource-server.ts` rather than leaking vendor protocol types through the generic payment core.
