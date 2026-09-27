@@ -8,11 +8,12 @@ const PRICE_XNO = '0.01';
 /**
  * Security rollout gate.
  *
- * This must remain a source-controlled `false` until the real Cloudflare D1
- * binding, deployed 402 path, and controlled payment test prerequisites are all
- * independently verified. Environment configuration cannot enable paid traffic.
+ * Payment traffic is enabled only after the real Cloudflare D1 binding,
+ * deployed challenge path, local paid-runtime behavior, guarded deployment
+ * workflow, and explicit operator authorization have all been verified.
+ * Environment configuration cannot change this source-controlled decision.
  */
-export const PAID_TRAFFIC_ENABLED = false as const;
+export const PAID_TRAFFIC_ENABLED = true as const;
 
 const bootstrap = createProductionNanoPaymentBootstrap({ facilitatorUrl: FACILITATOR_URL });
 const runtime = createCloudflareWorkerRuntime({
