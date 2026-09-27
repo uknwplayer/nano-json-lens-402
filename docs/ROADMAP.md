@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Blocks 004 and 011–020 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only Worker runtime, guarded deployment automation, a publicly reachable Worker, and an external proof-bearing fail-closed security review. Paid traffic remains source-disabled.
+Blocks 004 and 011–021 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only Worker runtime and deployment, public security review, local payment-enabled runtime evidence, and a guarded payment-enable deployment path. Production paid traffic remains source-disabled pending explicit operator authorization.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -77,11 +77,13 @@ Blocks 004 and 011–020 established protocol discovery, pinned package integrat
 - [x] Independently verify the live unpaid exact Nano 402 challenge without submitting a proof.
 - [x] Perform deployed proof-bearing fail-closed review while paid traffic remains disabled.
 - [x] Confirm no Worker runtime/source drift occurred after the deployed version; post-deploy changes through Block 019 were docs/workflow/test only.
-- [ ] Prove the payment-enabled Worker runtime locally without changing the production entrypoint.
-- [ ] Add a separate guarded payment-enable deployment workflow.
+- [x] Prove the payment-enabled Worker runtime locally without changing the production entrypoint.
+- [x] Add a separate guarded payment-enable deployment workflow.
 - [ ] Enable payment-taking startup only after explicit operator authorization and fresh full CI.
 
-Block 020 externally submitted a deliberately non-payment `payment-signature` to the deployed challenge-only Worker. Public-only Actions run `36282801732`, job `108517755618`, confirmed HTTP 503 fail-closed, no `payment-response`, no protected analysis, health 200 afterward, and a subsequent unpaid request still returning 402. No Cloudflare credential and no real Nano proof were used. The controlled paid-rollout plan is now documented at `docs/superpowers/plans/2026-09-26-paid-rollout-and-pursekeeper-submission.md`.
+Block 020 externally submitted a deliberately non-payment `payment-signature` to the deployed challenge-only Worker. Public-only Actions run `36282801732`, job `108517755618`, confirmed HTTP 503 fail-closed, no `payment-response`, no protected analysis, health 200 afterward, and a subsequent unpaid request still returning 402. No Cloudflare credential and no real Nano proof were used.
+
+Block 021 added local payment-enabled Worker regression evidence without changing the production rollout constant. Actions run `36284474392`, job `108522484660`, passed 92/92 tests and proved exactly one verify/settle plus protected delivery only after confirmed settlement for a structurally valid local proof; malformed proof remained non-settling and non-leaking. Task 2 then established RED at run `36284519752` because the dedicated paid-deploy workflow did not exist, and GREEN at run `36284707142`, job `108523139758`, with 93/93 tests after adding the manual `ENABLE_PAID_TRAFFIC` workflow. No payment-capable deployment occurred.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
@@ -105,7 +107,7 @@ Block 020 externally submitted a deliberately non-payment `payment-signature` to
 - [x] Confirm endpoint submission sequence and acceptance terms against direct Pursekeeper evidence.
 - [x] Confirm seller listings need no hold and the endpoint should be sent only when live/payment-capable.
 - [x] Confirm the first real paid listing call is expected to be made by Pursekeeper.
-- [ ] Complete local paid-mode proof and guarded paid deployment path.
+- [x] Complete local paid-mode proof and guarded paid deployment path.
 - [ ] Explicitly authorize and deploy payment-capable Worker.
 - [ ] Submit endpoint to Pursekeeper.
 - [ ] Pursekeeper confirms 402 challenge.
