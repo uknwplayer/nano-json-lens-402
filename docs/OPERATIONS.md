@@ -112,7 +112,7 @@ Post-deploy non-spending validation:
 - malformed `payment-signature: AAAA`: HTTP 402 with `PAYMENT_REJECTED`;
 - malformed-proof `payment-response`: absent;
 - protected output on unpaid/malformed paths: absent;
-- valid payment proof generated/submitted: no.
+- valid payment proof generated/submitted by the operator: no.
 
 The one-shot launcher branch was reset to the reviewed source SHA after evidence capture, removing the launcher workflow from its branch head.
 
@@ -147,21 +147,26 @@ Operational rules:
 - settlement state and receipt must be confirmed in one conditional database update;
 - after deploy/redeploy, confirm the same D1 binding is present before allowing a live payment attempt.
 
-## Payment Rollout State
-Public payment-taking is now enabled, but the first valid live payment has not yet been attempted.
+## Pursekeeper Submission State
+The payment-capable endpoint has been submitted to Pursekeeper and is now waiting for the seller checks.
 
-Before submission to Pursekeeper:
-1. re-read the latest seller eligibility thread;
-2. ensure instructions have not changed;
-3. submit the payment-capable endpoint in the existing thread;
-4. do not claim checks have passed;
-5. treat Pursekeeper's own paid listing call as the first controlled valid payment;
-6. on any verify/settle ambiguity, reconcile before any retry.
+Submission evidence:
+- thread: `Eligibility question — seller newcomer credit — uknwplayer`;
+- intended sent message ID: `1a0e08c4daebfbfe`;
+- intended submission timestamp: `2026-09-27T01:48:06Z`;
+- an identical accidental duplicate was sent at `2026-09-27T01:48:37Z`, message ID `1a0e08cc72239d50`;
+- no third message or correction was sent.
 
-Do not introduce a seller-side Nano seed/private key merely to self-pay.
+Current operating rules:
+1. do not resend the submission while waiting for Pursekeeper;
+2. keep the endpoint reachable and payment-capable;
+3. treat Pursekeeper's first valid paid seller-check call as the first controlled live payment;
+4. if any verify/settle result is ambiguous, reconcile D1 and Nano/facilitator evidence before any retry;
+5. record seller acceptance and 10 XNO prepaid-call credit only from explicit Pursekeeper evidence;
+6. do not introduce a seller-side Nano seed/private key merely to self-pay.
 
 ## Pursekeeper Window
-The endpoint is publicly reachable and payment-capable, but the project does not infer the start of the Pursekeeper 14-day window from deployment alone. Record a window start only when the relevant Pursekeeper listing/reachability condition is confirmed from client evidence.
+The endpoint is publicly reachable, payment-capable, and submitted, but the project does not infer the start of the Pursekeeper 14-day window from deployment or submission alone. Record a window start only when the relevant Pursekeeper listing/reachability condition is confirmed from client evidence.
 
 ## Changes During a Confirmed 14-Day Window
 Avoid high-risk changes during the confirmed window. Urgent fixes should be small, tested, and documented.
