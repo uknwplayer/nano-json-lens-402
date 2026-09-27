@@ -20,6 +20,10 @@ test('Cloudflare Worker deployment remains manual, isolated, and challenge-only'
   assert.match(workflow, /POST \/api\/lens/);
   assert.match(workflow, /EXPECTED_STATUS:\s*['"]?200['"]?/);
   assert.match(workflow, /EXPECTED_STATUS:\s*['"]?402['"]?/);
+  assert.match(workflow, /HEALTH_MAX_ATTEMPTS:\s*['"]?24['"]?/);
+  assert.match(workflow, /for \(\( attempt=1; attempt<=HEALTH_MAX_ATTEMPTS; attempt\+\+ \)\); do/);
+  assert.match(workflow, /sleep 5/);
+  assert.match(workflow, /Health endpoint did not become ready/);
   assert.doesNotMatch(workflow, /payment-signature/i);
   assert.doesNotMatch(workflow, /verifyPayment|settlePayment/);
 });
