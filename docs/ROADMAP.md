@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Blocks 004 and 011–019 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only Worker runtime, guarded deployment automation, and a publicly reachable Worker whose health and unpaid production 402 challenge are independently verified. Paid traffic remains source-disabled.
+Blocks 004 and 011–020 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only Worker runtime, guarded deployment automation, a publicly reachable Worker, and an external proof-bearing fail-closed security review. Paid traffic remains source-disabled.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -75,10 +75,13 @@ Blocks 004 and 011–019 established protocol discovery, pinned package integrat
 - [x] Add a guarded challenge-only Worker deployment workflow with dedicated Workers credential separation and public 200/402 post-deploy probes.
 - [x] Deploy the challenge-only Worker with the real D1 binding.
 - [x] Independently verify the live unpaid exact Nano 402 challenge without submitting a proof.
-- [ ] Perform the final deployed proof-header/security review before any paid traffic proposal.
-- [ ] Enable payment-taking startup only after deployed state/runtime prerequisites and explicit authorization are independently GREEN.
+- [x] Perform deployed proof-bearing fail-closed review while paid traffic remains disabled.
+- [x] Confirm no Worker runtime/source drift occurred after the deployed version; post-deploy changes through Block 019 were docs/workflow/test only.
+- [ ] Prove the payment-enabled Worker runtime locally without changing the production entrypoint.
+- [ ] Add a separate guarded payment-enable deployment workflow.
+- [ ] Enable payment-taking startup only after explicit operator authorization and fresh full CI.
 
-Block 014 selected Cloudflare Workers Free + D1 and implemented the durable store/migration. Block 015 added the Worker runtime/entrypoint and source-disabled paid traffic. Block 016 added guarded provisioning automation. Block 017 created and remotely validated the real D1 database. Block 018 added the separate least-privilege deployment workflow. Block 019 deployed the real challenge-only Worker at `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`, independently verified public health 200 and unpaid 402, and hardened the permanent deployment workflow with a bounded readiness wait after observing initial deployment propagation. No live `verify`/`settle` has occurred.
+Block 020 externally submitted a deliberately non-payment `payment-signature` to the deployed challenge-only Worker. Public-only Actions run `36282801732`, job `108517755618`, confirmed HTTP 503 fail-closed, no `payment-response`, no protected analysis, health 200 afterward, and a subsequent unpaid request still returning 402. No Cloudflare credential and no real Nano proof were used. The controlled paid-rollout plan is now documented at `docs/superpowers/plans/2026-09-26-paid-rollout-and-pursekeeper-submission.md`.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
@@ -95,22 +98,26 @@ Block 014 selected Cloudflare Workers Free + D1 and implemented the durable stor
 - [x] `GET /health` live.
 - [x] HTTPS deployment externally verified.
 - [x] External unpaid 402 test against the deployed endpoint.
-- [ ] Deployed proof-bearing fail-closed/security review.
-- [ ] Final logging/security review before payment enablement.
+- [x] Deployed proof-bearing fail-closed/security review.
+- [ ] Final paid-mode logging/security review before payment enablement.
 
 ## Phase 5 — Pursekeeper: 10 XNO
-- [ ] Confirm endpoint submission sequence and acceptance terms against current Pursekeeper evidence.
+- [x] Confirm endpoint submission sequence and acceptance terms against direct Pursekeeper evidence.
+- [x] Confirm seller listings need no hold and the endpoint should be sent only when live/payment-capable.
+- [x] Confirm the first real paid listing call is expected to be made by Pursekeeper.
+- [ ] Complete local paid-mode proof and guarded paid deployment path.
+- [ ] Explicitly authorize and deploy payment-capable Worker.
 - [ ] Submit endpoint to Pursekeeper.
 - [ ] Pursekeeper confirms 402 challenge.
 - [ ] First paid call delivers a real result.
 - [ ] Confirm listing/online state.
-- [ ] Record evidence of credit/prepayment.
+- [ ] Record evidence of 10 XNO prepaid-call credit.
 
 ## Phase 6 — 14-Day Window / +15 XNO
-- [ ] Confirm the exact event that starts the Pursekeeper 14-day window.
+- [x] Establish conservative clock rule: do not backdate to challenge-only deployment; start from first Pursekeeper-confirmed listing/reachability-probe date unless explicitly told otherwise.
 - [ ] Payment-taking code remains public.
 - [ ] Endpoint remains reachable.
-- [ ] Record start of window only from confirmed client criteria.
+- [ ] Record start of window from confirmed client criteria.
 - [ ] Track incidents.
 - [ ] Confirm 14-day completion.
 - [ ] Record second tranche.
