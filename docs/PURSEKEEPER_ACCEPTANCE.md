@@ -1,45 +1,62 @@
 # Pursekeeper Seller Newcomer Credit — Acceptance Criteria
 
 ## Operational Source of Truth
-The criteria below were received directly from the Pursekeeper agent on 2026-09-26 and reconfirmed immediately before submission in Block 023. Any protocol or program detail that may have changed must be reconfirmed from direct Pursekeeper evidence before making a new claim.
+The criteria were received directly from the Pursekeeper agent on 2026-09-26 and the seller result was confirmed by Pursekeeper on 2026-09-27.
+
+Acceptance email evidence:
+- Gmail message ID: `1a0e124b3218e1af`;
+- timestamp: `2026-09-27T04:34:30Z`;
+- subject: `Re: Eligibility question — seller newcomer credit — uknwplayer: listed and credited (ledger 260)`.
 
 ## First Stage — 10 XNO in Prepaid Calls
-The new public endpoint must:
-1. answer an unpaid request with HTTP 402;
-2. identify Nano/mainnet, or Nano in its supported dialect;
-3. provide a price;
-4. provide a payment address;
-5. correctly complete the first paid call made by Pursekeeper;
-6. deliver the promised useful result rather than a stub;
-7. remain online.
+Required checks:
+1. unpaid request answers HTTP 402;
+2. challenge identifies Nano/mainnet or supported Nano dialect;
+3. price is present;
+4. payment address is present;
+5. Pursekeeper's first paid call completes;
+6. the promised useful result is delivered rather than a stub;
+7. the endpoint remains online.
 
-When those listing checks pass, Pursekeeper reported that the seller is listed and receives **10 XNO of prepaid calls**.
+**Status: COMPLETE.**
+
+Pursekeeper reported the checks ran at 04:28–04:30 UTC on 2026-09-27:
+- unpaid `POST /api/lens` returned 402 with `PAYMENT-REQUIRED`, `exact`, `nano:mainnet`, `1e28` raw, expected payTo, and requestDigest;
+- its paid call settled through the facilitator and returned HTTP 200 with canonical form, SHA-256, 73-byte size, depth 3, and eight paths for the submitted document;
+- `/health` answered and the paid route remained reachable under probe.
+
+First live paid-call send block:
+`BB290B0B406FF6705B42430C4B0082EF9DEC3792FA34825BDE06DC9CADAF635E`
+
+Seller listing: `uknwplayer-json-lens` at `https://pursekeeper.dev/sellers`.
+
+First-stage credit: **10 XNO**, Pursekeeper ledger entry **260**.
 
 ## Second Stage — Additional 15 XNO
-After listing:
-- answer the Pursekeeper reachability probe for 14 days;
-- keep the Nano payment-taking code public in the seller's own repository.
+Pursekeeper confirmed:
+- the 14-day clock starts on `2026-09-27`;
+- the reachability probe must continue to succeed;
+- payment-taking code must remain public;
+- the relevant completion date identified by Pursekeeper is `2026-10-11`.
 
-Potential total reported: **25 XNO**.
+**Status: ACTIVE / PENDING COMPLETION.**
 
-## Confirmed Submission Sequence
-The direct instruction from Pursekeeper was: **send the endpoint when it is live; seller listings need no hold.**
+Do not claim the second-stage 15 XNO until explicit Pursekeeper evidence confirms it.
 
-For this project, "live" was interpreted conservatively to mean payment-capable, not merely challenge-capable, because the listing checks include a successful paid call by Pursekeeper.
-
-Completed sequence:
+## Completed Submission Sequence
 1. challenge-only deployment and public 402 evidence — completed;
-2. local payment-enabled runtime proof and separately guarded payment-enable deployment path — completed;
-3. explicit operator authorization before changing the source-controlled paid-traffic gate — completed;
-4. payment-capable Worker deployment plus health, unpaid 402, and malformed-proof checks without spending Nano — completed;
-5. endpoint submission to Pursekeeper in the existing eligibility thread — completed on 2026-09-27;
-6. Pursekeeper's own first paid listing call — **awaiting**;
-7. listing/credit evidence — **awaiting explicit Pursekeeper confirmation**.
+2. local payment-enabled runtime proof and guarded payment-enable deployment path — completed;
+3. explicit operator authorization before source-level paid enablement — completed;
+4. payment-capable Worker deployment and non-spending validation — completed;
+5. endpoint submission to Pursekeeper — completed on 2026-09-27;
+6. Pursekeeper's own first paid listing call — completed successfully;
+7. seller listing and 10 XNO first-stage credit — confirmed.
 
-The first intended submission message was sent at `2026-09-27T01:48:06Z`, Gmail message ID `1a0e08c4daebfbfe`. An identical accidental duplicate was sent 31 seconds later, message ID `1a0e08cc72239d50`. No further copy or correction was sent; do not resend while awaiting the seller checks.
+Primary submission message: `1a0e08c4daebfbfe` at `2026-09-27T01:48:06Z`. An identical accidental duplicate was sent 31 seconds later as `1a0e08cc72239d50`. No further submission copy was sent.
 
-## Current Submitted Service
+## Current Listed Service
 - Endpoint: `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`.
+- Seller listing: `uknwplayer-json-lens`.
 - Repository: `https://github.com/uknwplayer/nano-json-lens-402`.
 - Public implementation branch: `task5-production-nano-payment`.
 - Price: `0.01 XNO`.
@@ -48,45 +65,39 @@ The first intended submission message was sent at `2026-09-27T01:48:06Z`, Gmail 
 - Reviewed deployed source: `1a34893a5fc9142645adf612af2a51601f5701bf`.
 - Persistent payment state: Cloudflare D1 `PAYMENT_DB`.
 
-## 14-Day Clock Ruling
-Do not backdate the 14-day seller-credit clock to the challenge-only deployment, the payment-capable deployment, or the submission email. Record the clock from the first Pursekeeper-confirmed listing/reachability-probe date after the paid listing checks pass, unless Pursekeeper explicitly states a different start time.
+## Active Operational Conditions
+Pursekeeper stated that nothing else is currently needed from the operator.
 
-This conservative ruling matches the direct email wording: the additional credit depends on 14 days of answered reachability probes plus public payment-taking code.
+During the active window:
+- keep the endpoint reachable;
+- keep payment-taking code public;
+- avoid unnecessary production changes;
+- if the payTo or paid route changes, tell Pursekeeper the same day so the listing does not become stale;
+- record any reachability incident immediately.
 
-## Eligibility Notes
-- Operator `uknwplayer` was reported as eligible.
-- Previous research and Item 5 payments do not consume this benefit.
-- Seller listings do not require a hold.
-- The credit is prepayment for real calls, so the endpoint must provide genuine utility.
-- The first real paid call required for listing is expected to be made by Pursekeeper; this project will not introduce a seller-side Nano seed/private key merely to self-pay.
-
-## Current Non-Claims
-Until new Pursekeeper evidence arrives, do not claim:
+## Remaining Claims
+Confirmed:
 - seller listing accepted;
-- successful live facilitator verify;
-- successful live facilitator settle;
-- Nano transfer through this endpoint;
-- 10 XNO seller credit earned;
-- 14-day seller-credit clock started.
+- unpaid 402 seller check passed;
+- first live paid call settled through Pursekeeper's facilitator;
+- paid service returned HTTP 200 with the promised result;
+- 10 XNO first-stage credit earned and recorded;
+- 14-day clock started on 2026-09-27.
 
-## Evidence to Record
-As events occur, record:
+Not yet confirmed:
+- successful completion of all 14 reachability days;
+- second-stage 15 XNO credit.
+
+## Evidence to Preserve
 - public endpoint URL;
-- repository URL;
-- sanitized 402 response;
-- submitted commit/version;
-- endpoint-submission timestamp and Gmail message ID;
-- timestamp and transaction evidence of the first paid call;
-- Pursekeeper listing/check confirmation;
-- evidence of the 10 XNO prepaid-call credit;
-- first confirmed reachability-probe/listing date used for the 14-day clock;
-- availability incidents;
-- 14-day completion and second-stage credit evidence.
-
-## Response Handling
-When Pursekeeper replies:
-1. read the full existing thread before acting;
-2. distinguish challenge confirmation, paid-call attempt, settlement result, listing acceptance, and credit evidence;
-3. on any ambiguous paid-call result, reconcile D1 and Nano/facilitator state before retrying anything;
-4. do not send duplicate submission messages;
-5. update the current checkpoint and roadmap only from explicit evidence.
+- repository and public implementation branch;
+- submitted deployment/source identifiers;
+- submission email IDs and timestamp;
+- Pursekeeper acceptance email ID and timestamp;
+- first paid-call send block;
+- seller listing slug;
+- ledger entry 260 for the 10 XNO credit;
+- 14-day start date `2026-09-27`;
+- Pursekeeper-identified completion date `2026-10-11`;
+- availability incidents, if any;
+- second-stage completion/credit evidence when it arrives.
