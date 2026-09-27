@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Blocks 004 and 011–024 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only deployment and public security review, local payment-enabled runtime evidence, a guarded paid deployment path, explicit source-level payment enablement, a publicly deployed payment-capable Worker, and seller submission to Pursekeeper. The first valid live payment is now awaiting Pursekeeper's seller check.
+Blocks 004 and 011–026 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only deployment and public security review, local payment-enabled runtime evidence, guarded production enablement, a publicly deployed payment-capable Worker, Pursekeeper submission, the first successful live paid call, seller listing, the 10 XNO first-stage credit, and the confirmed 14-day reachability window.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -47,8 +47,8 @@ Blocks 004 and 011–024 established protocol discovery, pinned package integrat
 - [x] Unpaid request returns correct production 402 challenge.
 - [x] Include production network, price, and payTo through initialized pinned adapter.
 - [x] Decode and structurally validate local payment proof envelope.
-- [ ] Verify payment through initialized pinned real x402 adapter with a valid live client proof.
-- [ ] Settle payment through initialized pinned real x402 adapter with a valid live client proof.
+- [x] Verify payment through initialized pinned real x402 adapter with a valid live client proof.
+- [x] Settle payment through initialized pinned real x402 adapter with a valid live client proof.
 - [x] Deliver protected result only after a successful gate outcome in local HTTP integration tests.
 - [x] Local concurrency, replay, idempotency and settlement-uncertainty tests.
 - [x] Stable replay identity derived from Nano state-block material rather than serialized proof bytes.
@@ -81,14 +81,17 @@ Blocks 004 and 011–024 established protocol discovery, pinned package integrat
 - [x] Add a separate guarded payment-enable deployment workflow.
 - [x] Enable payment-taking startup after explicit operator authorization and fresh full CI.
 - [x] Deploy the payment-capable Worker and verify health, unpaid 402, and malformed-proof rejection without spending Nano.
+- [x] Complete the first valid live paid call through the production facilitator path and deliver the protected result.
 
 Block 020 externally submitted a deliberately non-payment `payment-signature` to the deployed challenge-only Worker. Public-only Actions run `36282801732`, job `108517755618`, confirmed HTTP 503 fail-closed, no `payment-response`, no protected analysis, health 200 afterward, and a subsequent unpaid request still returning 402. No Cloudflare credential and no real Nano proof were used.
 
 Block 021 added local payment-enabled Worker regression evidence without changing the production rollout constant. Actions run `36284474392`, job `108522484660`, passed 92/92 tests and proved exactly one verify/settle plus protected delivery only after confirmed settlement for a structurally valid local proof; malformed proof remained non-settling and non-leaking. Task 2 then established RED at run `36284519752` because the dedicated paid-deploy workflow did not exist, and GREEN at run `36284707142`, job `108523139758`, with 93/93 tests after adding the manual `ENABLE_PAID_TRAFFIC` workflow.
 
-Block 022 received explicit operator authorization, established TDD RED at run `36285150057`, then enabled only the source rollout constant in commit `1a34893a5fc9142645adf612af2a51601f5701bf`. Run `36285178793` passed the complete source verification suite. One-shot deployment run `36285252016`, job `108524675284`, pinned that exact reviewed SHA and deployed Cloudflare version `a6c0291a-b90e-447a-949c-8090f382837a`. Public health 200, unpaid 402 exact terms, and malformed-proof 402 rejection all passed. No valid payment proof, successful live verify/settle, or Nano transfer occurred.
+Block 022 received explicit operator authorization, established TDD RED at run `36285150057`, then enabled only the source rollout constant in commit `1a34893a5fc9142645adf612af2a51601f5701bf`. Run `36285178793` passed the complete source verification suite. One-shot deployment run `36285252016`, job `108524675284`, pinned that exact reviewed SHA and deployed Cloudflare version `a6c0291a-b90e-447a-949c-8090f382837a`. Public health 200, unpaid 402 exact terms, and malformed-proof 402 rejection all passed.
 
-Block 024 submitted the seller endpoint in the existing Pursekeeper eligibility thread after explicit operator authorization. The intended submission was sent at `2026-09-27T01:48:06Z` (Gmail message ID `1a0e08c4daebfbfe`). An identical duplicate was accidentally sent 31 seconds later while attempting to read back the send result (`1a0e08cc72239d50`). No further message was sent; the project now waits for Pursekeeper's seller checks.
+Block 024 submitted the seller endpoint in the existing Pursekeeper eligibility thread after explicit operator authorization. The intended submission was sent at `2026-09-27T01:48:06Z` (Gmail message ID `1a0e08c4daebfbfe`). An identical duplicate was accidentally sent 31 seconds later while attempting to read back the send result (`1a0e08cc72239d50`). No further message was sent.
+
+Block 026 records Pursekeeper's explicit acceptance email at `2026-09-27T04:34:30Z`. Pursekeeper reported its checks ran at 04:28–04:30 UTC: unpaid 402 passed; the first paid call settled through the facilitator and returned HTTP 200 with the promised JSON Lens output; `/health` and the paid route remained reachable. Seller `uknwplayer-json-lens` was listed, 10 XNO was credited as ledger entry 260, and the 14-day clock started 2026-09-27 with 2026-10-11 identified for the second-stage 15 XNO condition.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
@@ -108,6 +111,7 @@ Block 024 submitted the seller endpoint in the existing Pursekeeper eligibility 
 - [x] Deployed proof-bearing fail-closed/security review.
 - [x] Final paid-mode source/workflow/security review before payment enablement.
 - [x] Payment-capable Worker deployed with real D1.
+- [x] First real paid production call returned the protected service result after settlement.
 
 ## Phase 5 — Pursekeeper: 10 XNO
 - [x] Confirm endpoint submission sequence and acceptance terms against direct Pursekeeper evidence.
@@ -116,19 +120,19 @@ Block 024 submitted the seller endpoint in the existing Pursekeeper eligibility 
 - [x] Complete local paid-mode proof and guarded paid deployment path.
 - [x] Explicitly authorize and deploy payment-capable Worker.
 - [x] Submit endpoint to Pursekeeper.
-- [ ] Pursekeeper confirms 402 challenge.
-- [ ] First paid call delivers a real result.
-- [ ] Confirm listing/online state.
-- [ ] Record evidence of 10 XNO prepaid-call credit.
+- [x] Pursekeeper confirms 402 challenge.
+- [x] First paid call delivers a real result.
+- [x] Confirm listing/online state.
+- [x] Record evidence of 10 XNO prepaid-call credit.
 
 ## Phase 6 — 14-Day Window / +15 XNO
 - [x] Establish conservative clock rule: do not backdate to challenge-only deployment; start from first Pursekeeper-confirmed listing/reachability-probe date unless explicitly told otherwise.
 - [x] Payment-taking code is public on the working branch.
 - [x] Payment-capable endpoint is reachable.
-- [ ] Record start of window from confirmed client criteria.
-- [ ] Track incidents.
-- [ ] Confirm 14-day completion.
-- [ ] Record second tranche.
+- [x] Record start of window from confirmed client criteria: 2026-09-27.
+- [ ] Track incidents during the active window.
+- [ ] Confirm 14-day completion on/after 2026-10-11.
+- [ ] Record second-stage 15 XNO credit.
 
 ## Phase 7 — Post-validation
 - [ ] V1 tag/release.
