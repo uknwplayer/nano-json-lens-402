@@ -106,8 +106,8 @@ function lensRequest(headers: Record<string, string> = {}): Request {
   });
 }
 
-test('production Worker entrypoint is explicitly challenge-only', () => {
-  assert.equal(PAID_TRAFFIC_ENABLED, false);
+test('production Worker entrypoint is explicitly payment-enabled', () => {
+  assert.equal(PAID_TRAFFIC_ENABLED, true);
   assert.equal(typeof workerEntrypoint.fetch, 'function');
 });
 
