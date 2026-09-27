@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Blocks 004 and 011–018 established protocol discovery, pinned package integration, fail-closed bootstrap, the real unpaid 402 path, D1 persistence architecture, the challenge-only Cloudflare Worker runtime, real remotely validated D1 state, and a tested guarded Worker deployment path. Actual Worker deployment now waits only on separate least-privilege Workers authorization.
+Blocks 004 and 011–019 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only Worker runtime, guarded deployment automation, and a publicly reachable Worker whose health and unpaid production 402 challenge are independently verified. Paid traffic remains source-disabled.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -73,9 +73,12 @@ Blocks 004 and 011–018 established protocol discovery, pinned package integrat
 - [x] Apply remote migration `0001_payment_state.sql`.
 - [x] Validate synthetic write/read/CAS/delete against the real remote D1 database.
 - [x] Add a guarded challenge-only Worker deployment workflow with dedicated Workers credential separation and public 200/402 post-deploy probes.
-- [ ] Enable payment-taking startup only after deployed state/runtime prerequisites are independently GREEN.
+- [x] Deploy the challenge-only Worker with the real D1 binding.
+- [x] Independently verify the live unpaid exact Nano 402 challenge without submitting a proof.
+- [ ] Perform the final deployed proof-header/security review before any paid traffic proposal.
+- [ ] Enable payment-taking startup only after deployed state/runtime prerequisites and explicit authorization are independently GREEN.
 
-Block 014 selected Cloudflare Workers Free + D1 and implemented the durable store/migration. Block 015 added the Worker runtime/entrypoint, hard-disabled paid traffic, and proved the bundle with Wrangler 4.137.0 dry-run. Block 016 added guarded provisioning automation. Block 017 created and remotely validated the real D1 database, applied the migration, passed the synthetic state probe, and committed only the public database UUID. Block 018 added and tested a separate challenge-only deployment workflow that refuses to reuse the D1 credential and requires `CLOUDFLARE_WORKERS_API_TOKEN`. No live `verify`/`settle` has occurred.
+Block 014 selected Cloudflare Workers Free + D1 and implemented the durable store/migration. Block 015 added the Worker runtime/entrypoint and source-disabled paid traffic. Block 016 added guarded provisioning automation. Block 017 created and remotely validated the real D1 database. Block 018 added the separate least-privilege deployment workflow. Block 019 deployed the real challenge-only Worker at `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`, independently verified public health 200 and unpaid 402, and hardened the permanent deployment workflow with a bounded readiness wait after observing initial deployment propagation. No live `verify`/`settle` has occurred.
 
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
@@ -86,15 +89,17 @@ Block 014 selected Cloudflare Workers Free + D1 and implemented the durable stor
 - [x] Provision/apply the real remote D1 migration.
 - [x] Validate the real D1 database before deployment.
 - [x] Add guarded challenge-only Worker deployment automation and external validation contract.
-- [ ] Create dedicated least-privilege Workers deployment authorization in GitHub Actions Secrets.
-- [ ] Deploy challenge-only Worker.
-- [ ] `POST /api/lens` live.
-- [ ] `GET /health` live.
-- [ ] HTTPS deployment externally verified.
-- [ ] External 402 test against the deployed endpoint.
-- [ ] Logging/security review.
+- [x] Create separate least-privilege Workers deployment authorization in GitHub Actions Secrets.
+- [x] Deploy challenge-only Worker.
+- [x] `POST /api/lens` live in challenge-only mode.
+- [x] `GET /health` live.
+- [x] HTTPS deployment externally verified.
+- [x] External unpaid 402 test against the deployed endpoint.
+- [ ] Deployed proof-bearing fail-closed/security review.
+- [ ] Final logging/security review before payment enablement.
 
 ## Phase 5 — Pursekeeper: 10 XNO
+- [ ] Confirm endpoint submission sequence and acceptance terms against current Pursekeeper evidence.
 - [ ] Submit endpoint to Pursekeeper.
 - [ ] Pursekeeper confirms 402 challenge.
 - [ ] First paid call delivers a real result.
@@ -102,9 +107,10 @@ Block 014 selected Cloudflare Workers Free + D1 and implemented the durable stor
 - [ ] Record evidence of credit/prepayment.
 
 ## Phase 6 — 14-Day Window / +15 XNO
+- [ ] Confirm the exact event that starts the Pursekeeper 14-day window.
 - [ ] Payment-taking code remains public.
 - [ ] Endpoint remains reachable.
-- [ ] Record start of window.
+- [ ] Record start of window only from confirmed client criteria.
 - [ ] Track incidents.
 - [ ] Confirm 14-day completion.
 - [ ] Record second tranche.
