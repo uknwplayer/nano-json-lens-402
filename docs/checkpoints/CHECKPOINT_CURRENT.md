@@ -29,6 +29,8 @@
 - Readiness-wait RED evidence: commit `22f2a02e71add01ee564635ab639869a5cb59f4a`, Actions run `36282176562`: 90 total, 89 passed, exactly one workflow-contract test failed because the bounded wait did not yet exist.
 - Readiness-wait GREEN implementation: commit `8f3a8b42e65d4d7f26cb1da4eae10db52fbe09ee`.
 - GREEN evidence: Actions run `36282271750`, job `108516259954`: 90/90 tests, typecheck, Wrangler dry-run, dependency tree, and production audit all passed.
+- The temporary `work/cloudflare-worker-deploy-once` branch was normalized to the reviewed project head after evidence capture, removing the one-shot diagnostic/deployment workflows from its current tree.
+- The stale execution ledger was reconciled without rewriting history: the exact Blocks 005–015 ledger is preserved at `docs/execution-ledger/EXECUTION_LEDGER_005_015.md`, while `docs/EXECUTION_LEDGER.md` now records Blocks 016–019.
 
 ## Active payment and rollout rulings
 - `PAID_TRAFFIC_ENABLED` remains source-controlled `false`; environment configuration cannot override it.
@@ -77,11 +79,10 @@ Therefore:
 
 ## Exact next step
 Continue Task 5 on `task5-production-nano-payment`:
-1. normalize/remove the temporary deployment launcher branch after evidence capture;
-2. complete a fresh deployment security review, including the deployed challenge-only proof-header fail-closed behavior;
-3. confirm the Pursekeeper submission/acceptance sequence and whether public deployment alone affects any timing window;
-4. prepare the first controlled live payment test plan, including exact success/failure evidence and rollback/reconciliation handling;
-5. do **not** submit a real payment proof or enable `PAID_TRAFFIC_ENABLED` until a later explicit authorization block.
+1. complete a fresh deployed security review, including the challenge-only proof-header fail-closed behavior;
+2. confirm the Pursekeeper submission/acceptance sequence and whether public deployment alone affects any timing window;
+3. prepare the first controlled live payment test plan, including exact success/failure evidence and rollback/reconciliation handling;
+4. do **not** submit a real payment proof or enable `PAID_TRAFFIC_ENABLED` until a later explicit authorization block.
 
 ## Continuity
 All repository artifacts remain in English; private operator conversation remains in Portuguese. Keep work blocks approximately 15 minutes and update this checkpoint at every block closure. `main` remains untouched until isolated Task 5 work is verified and explicitly integrated.
