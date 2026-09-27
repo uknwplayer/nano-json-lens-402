@@ -108,3 +108,33 @@ A temporary repository-write probe created while the connector rejected a direct
 No payment-capable deployment occurred. `PAID_TRAFFIC_ENABLED` remains `false`; the currently public Worker remains challenge-only; no live facilitator verify/settle and no Nano transfer occurred.
 
 Ruling: Task 3 is the first source-level action that can make valid external proofs reach live facilitator verification and settlement. It requires explicit operator authorization specifically to enable paid traffic and deploy. A generic continuation signal is not sufficient for this gate.
+
+## Block 022 / Task 5 — payment-capable production deployment
+Branch: `task5-production-nano-payment`.
+
+The operator explicitly authorized enabling `PAID_TRAFFIC_ENABLED` and deploying the payment-capable Worker.
+
+Task 3 TDD RED: commit `8ea2c2a5f216ae08b9cecb6ab77e2425f686acfa`, Actions run `36285150057`, job `108524392146`: 93 tests total, 92 passed, exactly one failed because the production entrypoint still exported `false` while the new expectation required `true`.
+
+The minimal rollout change was then made in commit `1a34893a5fc9142645adf612af2a51601f5701bf`: only the source-controlled gate/comment in `src/worker.ts` and the matching test expectation changed. Price, payTo, facilitator, network, D1 binding, verification, settlement, replay, and delivery algorithms did not change.
+
+GREEN source verification: Actions run `36285178793`, job `108524476873`, completed successfully with 93/93 tests, typecheck, Wrangler `4.137.0` dry-run against the real D1 binding, dependency-tree validation, and 0-vulnerability production audit. Diff review from Block 021 head `afc23b63e949125303333f3800ca630dfcdfdb7a` showed only `src/worker.ts` and `test/worker-runtime.test.ts` changed.
+
+Because GitHub does not expose the branch-local manual workflow from the default-branch Actions UI, an isolated one-shot launcher branch `work/payment-enabled-deploy-022` was used. It pinned exact source SHA `1a34893a5fc9142645adf612af2a51601f5701bf`, rechecked the source gate and real D1 binding, reran the full verification suite, and used only the dedicated Workers deployment secret.
+
+Deployment evidence: Actions run `36285252016`, job `108524675284`, completed `success` and deployed:
+- Worker: `nano-json-lens-402`;
+- URL: `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`;
+- Cloudflare version ID: `a6c0291a-b90e-447a-949c-8090f382837a`;
+- D1 binding: real `PAYMENT_DB`.
+
+Public non-spending checks after deployment passed:
+- `/health` = HTTP 200 with the expected bounded body;
+- unpaid `/api/lens` = HTTP 402 with exact / nano:mainnet / XNO, expected raw amount and payTo, and no protected output;
+- malformed `payment-signature: AAAA` = HTTP 402 `PAYMENT_REJECTED`, no `payment-response`, and no protected output.
+
+No valid payment proof was generated or submitted in this block, so no successful live facilitator verify/settle or Nano transfer is claimed. Pursekeeper's seller-listing call remains the intended first controlled valid payment.
+
+After evidence capture, the one-shot launcher branch was reset to the reviewed source SHA, removing the launcher workflow from its branch head.
+
+Ruling: the endpoint is now payment-capable and ready for seller submission, but listing acceptance, 10 XNO credit, and the 14-day clock must not be claimed until Pursekeeper confirms the corresponding client-side checks/event.
