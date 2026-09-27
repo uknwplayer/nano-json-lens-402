@@ -16,63 +16,65 @@
 ## Payment Gate
 The paid result must not be delivered before successful payment verification and settlement. Payment failures or ambiguous settlement states must be explicit and must never silently fall back to free access.
 
-### Approved V1 security model
-The payment flow uses a fail-closed, strongly idempotent state model. A paid result may be released only from a confirmed `settled` state.
+### Implemented V1 security model
+The payment flow is fail-closed and strongly idempotent around settlement. A paid result may be released only from a confirmed `settled` state.
 
-Planned state progression:
+Implemented state progression:
 
 `unverified -> verified -> settling -> settled -> fulfilled`
 
-An ambiguous timeout or facilitator failure does not transition to `fulfilled`. It enters recovery/reconciliation and must not automatically request or initiate another charge until the existing payment state is resolved.
+The durable payment store also records terminal `settle_failed` and ambiguous `settlement_unknown` states. An ambiguous timeout or facilitator failure does not transition to `fulfilled` and is never automatically settled again.
 
 ### Request binding
-Each protected call must derive a deterministic request fingerprint from security-relevant request context. The design target is equivalent to:
+Each protected call derives a deterministic request identifier from security-relevant request context:
 
-`requestId = SHA-256(version || method || route || canonicalPayloadHash || price || network || payTo)`
+`requestId = SHA-256(JSON([domain, method, resourceUrl, requestDigest, priceRaw, network, payTo]))`
 
-The exact byte serialization must be frozen before implementation; ambiguous string concatenation is not acceptable. Length-prefixing or a canonical structured encoding should be used so distinct field tuples cannot collide through serialization ambiguity.
+The frozen domain is `nano-json-lens/payment-request/v1` and the method is `POST`. The JSON array is encoded as UTF-8 and avoids ambiguous delimiter concatenation.
 
-The binding must cover at least:
+The binding covers:
 - protocol/version domain separator;
 - HTTP method;
-- protected route;
-- canonical payload digest;
-- expected price;
+- protected resource URL;
+- exact request-body SHA-256 digest;
+- expected raw-unit price;
 - Nano network;
 - receiving address.
 
-Changing protected content or payment terms must therefore produce a different request identity.
+Changing protected content or payment terms therefore produces a different server request identity.
 
-### Payment binding and replay defense
-A payment proof/transaction identity must be associated with the intended request identity. The server must reject attempts to reuse one payment authorization for a different protected request.
+### Payment identity and replay defense
+The payment identity is the Nano state-block hash derived with `nano-sdk`. The operation identity is a separate SHA-256 domain-separated hash of `requestId` and `paymentIdentity`.
 
-Concurrency must be atomic: only one execution may acquire a request/payment identity for settlement or fulfillment. Simultaneous copies of the same proof must not produce multiple paid executions.
+A durable atomic store owns the first verified redemption of a `paymentIdentity`. The same identity may recover a previously settled receipt for the same `requestId`, but it is rejected for a different `requestId`. Simultaneous copies of one proof cannot both acquire settlement ownership.
 
-A completed request must remain idempotent for a bounded retention period. A byte/semantically identical legitimate retry after a connection failure should recover the already-authorized state/result where safe, rather than demand a second payment. A modified request using the same payment evidence is a replay and must be rejected.
+Important protocol boundary: the V1 `extra.requestId` field is x402 payment-requirement metadata checked by this server. It is not embedded in or cryptographically signed by the Nano state block. Consequently V1 provides a **single-redemption bearer entitlement**: after facilitator verification, the first atomic claim binds that Nano payment identity to one protected request. The implementation must not claim that the Nano signature pre-commits the payer to the JSON request itself.
 
-### Minimal retained security state
-Do not retain the customer's submitted JSON merely to implement replay protection. Retain only the minimum needed for payment safety, such as:
-- request identifier;
-- non-secret payment/proof identifier or digest;
-- payment state;
-- settlement reference/status required for reconciliation;
-- timestamps/expiry;
-- bounded cached result or result digest only if required for safe idempotent retry.
+### Durable state
+V1 uses a SQLite payment-state database with:
+- unique `paymentIdentity`;
+- unique `operationId`;
+- `requestId`;
+- settlement state;
+- confirmed settlement receipt when available;
+- update timestamp.
 
-Retention duration and storage backend remain open design items and must be fixed before production deployment.
+Submitted JSON is not stored in the payment database.
+
+The SQLite implementation is suitable only where every serving process uses the **same durable database file**. A single service instance on one persistent volume is acceptable. Horizontally scaled replicas with independent disks are prohibited because they would not share atomic replay state; that topology requires a shared transactional store before launch.
+
+V1 performs no automatic pruning of payment identities. Replay metadata should remain for at least the full public service lifetime so an old payment cannot become redeemable again merely because a row expired. The database contains payment metadata, not submitted documents or wallet secrets.
 
 ## Settlement ambiguity
-If the facilitator may have received a settlement request but the server did not receive a definitive response, treat the state as unknown. Do not grant unpaid access and do not blindly settle or charge again. Reconcile the existing attempt first using protocol-supported identifiers/status mechanisms. If the selected Nano facilitator cannot support safe reconciliation, the limitation must be explicitly handled in the production design before launch.
+If the facilitator may have received a settlement request but the server did not receive a definitive response, the operation becomes `settlement_unknown`. The service grants no protected result and does not blindly call settlement again.
+
+Production launch remains blocked until the selected facilitator has a documented reconciliation/status mechanism or the operator explicitly accepts a manual recovery procedure for ambiguous settlements. Fake-facilitator integration tests are protocol evidence only and are not evidence of a real Nano payment.
 
 ## Availability
 The health endpoint must be inexpensive and independent of heavy processing. The 14-day requirement makes deployment and configuration failures operationally important.
 
 ## Dependencies
-Before release:
-- pin versions appropriately;
-- review critical transitive dependencies;
-- run tests;
-- avoid unnecessary dependencies.
+The V1 payment path pins `@x402/core`, `@x402nano/exact`, `nano-sdk`, TypeScript and parser versions in the lockfile. CI runs the complete test suite, type checking and whitespace verification. Critical dependency changes require the same verification before release.
 
 ## Data Handling
-Treat the service as a transient processor: receive JSON, calculate the response, and discard the submitted content unless a future design explicitly changes this rule. Payment/replay metadata must follow the minimal-retention rule above.
+Treat the service as a transient processor: receive JSON, calculate the response, and discard the submitted content. Persist only the minimal payment/replay metadata described above. Never log submitted JSON, payment proofs, wallet seeds, private keys or recovery phrases.
