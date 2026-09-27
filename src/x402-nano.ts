@@ -51,13 +51,14 @@ function decodeAccepted(value: unknown): NanoPaymentRequirement {
     throw new Error('Invalid accepted payment terms.');
   }
   return {
+    ...accepted,
     scheme: 'exact',
     network: 'nano:mainnet',
     asset: 'XNO',
     amount: accepted.amount,
     payTo: accepted.payTo,
-    extra: { requestId: requestId.toLowerCase() },
-  };
+    extra: { ...extra, requestId: requestId.toLowerCase() },
+  } as unknown as NanoPaymentRequirement;
 }
 
 function decodePayload(proof: string): { wire: PaymentPayload; accepted: NanoPaymentRequirement; block: Nano.Blocks.StateBlock } {
