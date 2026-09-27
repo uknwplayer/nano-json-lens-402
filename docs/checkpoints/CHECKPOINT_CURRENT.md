@@ -1,82 +1,87 @@
 # CURRENT CHECKPOINT — Nano JSON Lens 402
 
 **Date:** 2026-09-26
-**Block:** 018 — guarded challenge-only Worker deployment path GREEN / Workers authorization pending
-**Overall state:** TASK 5 IN PROGRESS / REAL D1 GREEN / DEPLOYMENT WORKFLOW GREEN / WORKER NOT DEPLOYED / PAID TRAFFIC HARD-OFF / LIVE VERIFY-SETTLE NOT STARTED / MAIN UNTOUCHED
+**Block:** 019 — public challenge-only Cloudflare Worker deployed and externally verified
+**Overall state:** TASK 5 IN PROGRESS / REAL D1 GREEN / PUBLIC WORKER GREEN / HEALTH 200 GREEN / UNPAID 402 GREEN / PAID TRAFFIC HARD-OFF / LIVE VERIFY-SETTLE NOT STARTED / MAIN UNTOUCHED
 
 ## Completed in this block
-- Reconfirmed the reviewed branch head and the real D1-backed Worker configuration before deployment work.
-- Rechecked current Cloudflare authorization guidance: Wrangler CI uses an API token plus account ID; deploying an existing Worker requires Workers deployment/edit authorization, while creating a new Worker can require broader Workers creation authorization. D1 permission is not required merely because the Worker has a D1 binding.
-- Security ruling: do not broaden or reuse `CLOUDFLARE_D1_API_TOKEN` for Worker deployment. Keep D1 provisioning and Worker deployment credentials separated.
-- Added `test/cloudflare-worker-deploy-workflow.test.ts` before the deployment workflow.
-- TDD RED evidence: commit `b1179e7e7ccbd1b50413348c17d56221f9e8417f`, Actions run `36281170096`, job `108513125280`: 90 tests total, 89 passed, exactly one failed because `.github/workflows/cloudflare-worker-deploy.yml` did not exist.
-- Added `.github/workflows/cloudflare-worker-deploy.yml` in commit `fb530c8526ca9f5af3900d02f7de9670186b0913`.
-- The deployment workflow is manual-only, requires literal `DEPLOY_CHALLENGE_ONLY`, is guarded to `task5-production-nano-payment`, uses exact Wrangler `4.137.0`, checks the real D1 UUID, and rechecks `PAID_TRAFFIC_ENABLED === false` before any Cloudflare deployment call.
-- The workflow requires a dedicated GitHub Actions secret named `CLOUDFLARE_WORKERS_API_TOKEN`; it does not use the D1 token for deployment.
-- Before deploy, the workflow reruns tests, typecheck, and Wrangler dry-run.
-- After deploy, it is designed to discover the public `workers.dev` URL and externally require `GET /health` = 200 and an unpaid `POST /api/lens` = 402 with exact Nano mainnet / XNO / expected amount / expected payTo and no protected result.
-- The workflow contains no submitted payment proof and no direct `verifyPayment`/`settlePayment` action.
-- First GREEN attempt exposed only a test-syntax assumption (`EXPECTED_STATUS=200` vs YAML `EXPECTED_STATUS: '200'`); production workflow behavior was unchanged.
-- Test correction commit: `b96566c8625d46af416364e8c86babedecac6547`.
-- GREEN evidence: Actions run `36281265524`, job `108513396694`: full tests, typecheck, Wrangler dry-run, dependency-tree validation, and production dependency audit all passed.
+- The operator created a separate least-privilege Cloudflare Workers API token and stored it only as GitHub Actions secret `CLOUDFLARE_WORKERS_API_TOKEN`.
+- The existing D1-only token was not broadened or reused for Worker deployment.
+- A one-shot isolated launcher pinned reviewed branch commit `92aa8971e227520195b58c088a7dfdd0d00f5204`, rechecked `PAID_TRAFFIC_ENABLED === false`, the real D1 UUID, and all pre-deployment tests before mutation.
+- Actions run `36281960914`, job `108515377275`, successfully deployed Worker `nano-json-lens-402` using Wrangler `4.137.0`.
+- The Cloudflare Workers Scripts Edit token was sufficient for this first deployment; no Workers Admin escalation was needed.
+- Public endpoint: `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`.
+- Deployed Cloudflare version ID: `36286ef2-2068-4c6c-a735-4d20f6e9b5ae`.
+- The first immediate post-deploy `/health` probe returned Cloudflare HTTP 404 / error 1042. No application or configuration change was made in response.
+- Diagnostic run `36282060561`, job `108515655977`, re-ran against the unchanged deployment and observed `GET /health` = HTTP 200 with exact body `{"status":"ok","version":"1"}`. The transient first failure is therefore treated as initial deployment propagation/routing convergence, not as evidence for a persistent Worker fetch defect.
+- Independent public-only verification run `36282142586`, job `108515889136`, completed `success` without Cloudflare credentials and confirmed:
+  - `GET /health` = HTTP 200;
+  - unpaid `POST /api/lens` = HTTP 402;
+  - scheme `exact`;
+  - network `nano:mainnet`;
+  - asset `XNO`;
+  - amount `10000000000000000000000000000` raw;
+  - expected public Nano `payTo`;
+  - `payment-required` response header present;
+  - no protected result/analysis in the unpaid response.
+- No payment proof was submitted during public verification. Pursekeeper `verify` and `settle` were not called and no Nano transfer occurred.
+- The permanent deployment workflow was hardened test-first to tolerate only bounded post-deploy propagation: at most 24 health attempts separated by 5 seconds, then fail closed.
+- Readiness-wait RED evidence: commit `22f2a02e71add01ee564635ab639869a5cb59f4a`, Actions run `36282176562`: 90 total, 89 passed, exactly one workflow-contract test failed because the bounded wait did not yet exist.
+- Readiness-wait GREEN implementation: commit `8f3a8b42e65d4d7f26cb1da4eae10db52fbe09ee`.
+- GREEN evidence: Actions run `36282271750`, job `108516259954`: 90/90 tests, typecheck, Wrangler dry-run, dependency tree, and production audit all passed.
 
 ## Active payment and rollout rulings
-- `PAID_TRAFFIC_ENABLED` remains source-controlled `false`; no environment setting may bypass this rollout gate.
-- The real Cloudflare D1 database remains the intended production state backend.
-- A submitted proof in challenge-only mode must never reach facilitator `verify` or `settle`.
-- `requestDigest` is local service metadata, not cryptographic binding between Nano payment and submitted JSON.
-- Stable replay identity is derived from validated Nano state-block material, not serialized envelope bytes.
-- Facilitator verification and Nano settlement remain authoritative for payment validity/finality.
-- Production payment-taking requires bootstrap `ready` and a `PaymentStateStore` with `productionSafe === true`.
-- Settlement confirmation must atomically persist both `settled` state and bounded receipt.
-- Stale or ambiguous settlement writes fail closed; do not add automatic settlement write retries.
-- Cloudflare credentials remain only in GitHub Actions Secrets and must never be copied into chat or repository content.
-- D1 and Workers tokens remain separate least-privilege credentials.
+- `PAID_TRAFFIC_ENABLED` remains source-controlled `false`; environment configuration cannot override it.
+- The deployed Worker is challenge-only. A proof-bearing request is blocked by the challenge-only runtime before the concrete production payment resource server can call facilitator `verify` or `settle`.
+- The real Cloudflare D1 database remains the production replay/settlement state backend.
+- Stable replay identity remains derived from validated Nano state-block material, not serialized proof bytes.
+- `requestDigest` remains local service metadata, not cryptographic payment/body binding.
+- Facilitator verification and Nano settlement remain authoritative for eventual payment validity/finality.
+- Settlement confirmation must remain one atomic D1 state+receipt write; ambiguous settlement outcomes fail closed without automatic re-settlement.
+- Cloudflare D1 and Workers credentials remain separate least-privilege GitHub Actions secrets and must never be committed or pasted into chat.
 - No Nano seed/private key is stored or required.
 
-## Deployment target and configuration
+## Deployment target and live configuration
 - Runtime: Cloudflare Workers Free.
-- Persistent state: Cloudflare D1.
-- Worker name: `nano-json-lens-402`.
+- Worker: `nano-json-lens-402`.
+- Public endpoint: `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`.
 - Worker entrypoint: `src/worker.ts`.
 - Runtime adapter: `src/worker-runtime.ts`.
+- Persistent state: Cloudflare D1.
 - D1 binding: `PAYMENT_DB`.
 - D1 database: `nano-json-lens-402-payment-state`.
 - D1 database ID: `8cbbea4c-b368-40e5-a7c0-9d72bce2567e`.
-- Remote migration `0001_payment_state.sql`: applied and validated.
-- Deployment workflow: `.github/workflows/cloudflare-worker-deploy.yml`.
+- Migration `0001_payment_state.sql`: applied remotely.
 - Wrangler: `4.137.0`.
+- Payment network/scheme: `nano:mainnet` / `exact`.
+- Price: `0.01 XNO` = `10000000000000000000000000000` raw.
+- Facilitator: `https://facilitator.pursekeeper.dev`.
+- Public payTo: `nano_1zwik4hd1pjy73owfah8xuxzokk6zexc5a6rs6byhrxryggkbh38kemm51yt`.
 
 ## Scope of evidence / explicit non-claims
-Current direct evidence proves the real D1 backend and proves that the guarded challenge-only deployment workflow passes repository CI. It does **not** prove that the Worker has been deployed.
+Direct evidence now proves that the actual Worker is deployed and publicly reachable over HTTPS, that `/health` returns the bounded 200 response, and that an unpaid valid lens request returns the expected production x402 402 challenge against the real D1-backed runtime.
+
+It does **not** prove a paid-call success or Pursekeeper acceptance.
 
 Therefore:
-- real D1: GREEN;
-- remote migration/state probe: GREEN;
-- deployment workflow contract: GREEN;
-- Worker deployment: WAITING ON WORKERS AUTHORIZATION;
-- public `GET /health`: NOT YET LIVE;
-- public unpaid `POST /api/lens` 402: NOT YET LIVE;
+- real D1 + migration/state probe: GREEN;
+- Worker deployment: GREEN;
+- public HTTPS reachability: GREEN;
+- public `GET /health`: GREEN;
+- public unpaid `POST /api/lens` 402: GREEN;
+- paid traffic: HARD-OFF;
 - live `verify` / `settle`: NOT STARTED;
 - Nano transfer: NONE;
-- Pursekeeper 14-day reachability window: NOT STARTED.
+- Pursekeeper endpoint submission: NOT YET DONE;
+- Pursekeeper 14-day window: **NOT CLAIMED AS STARTED**. Public reachability alone is not being treated as proof of the client-side window start until the applicable Pursekeeper acceptance/submission condition is confirmed.
 
-## Required operator action — do not paste the token into chat
-Create a separate Cloudflare Workers deployment API token, scoped to the intended account and only the minimum Workers permission available for deployment. Start with the current equivalent of Workers Scripts Edit / Workers Editor rather than broadening the D1 token. Store it only as the GitHub Actions repository secret:
-
-`CLOUDFLARE_WORKERS_API_TOKEN`
-
-If Cloudflare rejects the first deployment specifically because `nano-json-lens-402` does not yet exist and creation requires a stronger Workers role, stop and record that evidence before increasing privilege. Do not grant broader permissions preemptively.
-
-## Exact next step after that secret exists
-1. verify the reviewed branch has not moved unexpectedly;
-2. launch the guarded deployment through an isolated one-shot dispatcher because the permanent manual workflow is branch-only;
-3. require the workflow to pass its pre-deploy checks before the Cloudflare mutation;
-4. capture the authoritative public Worker URL from Wrangler;
-5. externally validate `GET /health` = 200 and unpaid `POST /api/lens` = 402;
-6. independently re-check the endpoint outside the deployment runner;
-7. update checkpoint/security evidence;
-8. only in a later explicitly authorized block consider any live payment proof, `verify`, or `settle` test.
+## Exact next step
+Continue Task 5 on `task5-production-nano-payment`:
+1. normalize/remove the temporary deployment launcher branch after evidence capture;
+2. complete a fresh deployment security review, including the deployed challenge-only proof-header fail-closed behavior;
+3. confirm the Pursekeeper submission/acceptance sequence and whether public deployment alone affects any timing window;
+4. prepare the first controlled live payment test plan, including exact success/failure evidence and rollback/reconciliation handling;
+5. do **not** submit a real payment proof or enable `PAID_TRAFFIC_ENABLED` until a later explicit authorization block.
 
 ## Continuity
 All repository artifacts remain in English; private operator conversation remains in Portuguese. Keep work blocks approximately 15 minutes and update this checkpoint at every block closure. `main` remains untouched until isolated Task 5 work is verified and explicitly integrated.
