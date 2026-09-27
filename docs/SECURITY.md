@@ -20,22 +20,22 @@ Production composition is stricter than the generic test/development gate:
 - a `PaymentStateStore` must be present and must explicitly advertise `productionSafe === true`;
 - `MemoryPaymentStateStore` is never acceptable for payment-taking production traffic because its replay and settlement state disappears on process restart or redeploy;
 - a cold, initializing, or failed bootstrap must not construct a payment-ready production gate;
-- supported-capability synchronization and 402 challenge generation do not constitute permission to perform live `verify` or `settle` without a production-safe persistent state store.
+- supported-capability synchronization and 402 challenge generation do not constitute payment finality.
 
 `requestDigest` remains local service metadata used to detect request/payment mismatches. It must not be described as cryptographic binding between the Nano block and submitted JSON. Nano settlement remains authoritative for actual payment finality; the local state store is a mandatory production defense for replay, idempotency, concurrency, entitlement recovery, and settlement uncertainty.
 
 ## Worker Rollout Gate
-The deployed Cloudflare Worker retains an explicit source-level payment barrier:
-- `PAID_TRAFFIC_ENABLED` is a source-controlled `false` constant in `src/worker.ts`;
-- environment variables or account configuration cannot enable paid traffic in this stage;
-- challenge-only mode delegates unpaid challenge generation but rejects proof processing before the concrete resource server can call facilitator `verify` or `settle`;
+The deployed Cloudflare Worker has now crossed the explicit source-level rollout gate:
+- `PAID_TRAFFIC_ENABLED` is a source-controlled `true` constant in `src/worker.ts`;
+- environment variables or account configuration cannot independently change the rollout state;
 - the protected route requires HTTPS;
 - the protected route requires the real D1 binding with the expected statement API;
 - a missing or invalid binding fails closed with 503 before x402 bootstrap;
+- malformed or structurally invalid proofs are rejected before settlement and before protected output can be released;
 - `GET /health` remains independent of D1 and facilitator readiness;
 - the production resource URL is derived from the incoming origin plus fixed `/api/lens`, not arbitrary client-provided URL data.
 
-Changing `PAID_TRAFFIC_ENABLED` is a future security-sensitive source change. Local payment-enabled runtime behavior and a separately guarded payment-enable deployment path are now GREEN, but the source gate must remain `false` until the operator explicitly authorizes the paid-traffic source change and deployment.
+This source-level enablement was authorized explicitly by the operator in Block 022 after local paid-runtime proof, guarded deployment-path proof, fresh full CI, and public challenge-only security review were all GREEN.
 
 ## Cloudflare Credentials
 Cloudflare credentials stay outside repository content and ChatGPT conversation data.
@@ -54,7 +54,7 @@ Security rules:
 - do not reuse a global API key;
 - do not broaden the D1-only token for Worker deployment;
 - do not grant Workers Admin unless a documented operation actually requires it;
-- the initial challenge-only deployment proved Workers Scripts Edit was sufficient, so no Admin escalation was needed;
+- Workers Scripts Edit has been sufficient for both challenge-only and payment-capable deployment;
 - the permanent provisioning and deployment workflows are manual-only and branch-guarded;
 - one-shot launcher workflows are permitted only on isolated temporary branches with a pinned reviewed target SHA and must be removed from branch heads after evidence capture.
 
@@ -74,37 +74,31 @@ Challenge-only deployment evidence:
 - Actions run `36281960914`, job `108515377275`;
 - Worker `nano-json-lens-402`;
 - endpoint `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`;
-- Cloudflare version ID `36286ef2-2068-4c6c-a735-4d20f6e9b5ae`;
+- challenge-only Cloudflare version ID `36286ef2-2068-4c6c-a735-4d20f6e9b5ae`;
 - real `PAYMENT_DB` binding present.
 
-The first immediate health request after deployment returned Cloudflare error 1042. No runtime relaxation was added. Diagnostic run `36282060561` observed the exact unchanged Worker returning HTTP 200 shortly afterward. Independent public-only run `36282142586` then passed both health 200 and the expected unpaid Nano 402 challenge.
+The first immediate health request after the initial deployment returned Cloudflare error 1042. No runtime relaxation was added. Diagnostic run `36282060561` observed the exact unchanged Worker returning HTTP 200 shortly afterward. Independent public-only run `36282142586` then passed both health 200 and the expected unpaid Nano 402 challenge.
 
-Ruling: treat initial post-deploy reachability as a bounded readiness/propagation problem unless persistent evidence demonstrates an application defect. The permanent deploy workflow therefore waits for health with a bounded 24-attempt / 5-second interval policy and still fails closed if readiness is not achieved. Do not enable broad fetch compatibility flags merely to suppress a transient deployment observation.
-
-No payment proof was submitted in the public deployment verification. No live facilitator `verify` or `settle` occurred and no Nano transfer occurred.
+Ruling: treat initial post-deploy reachability as a bounded readiness/propagation problem unless persistent evidence demonstrates an application defect. Deployment automation waits for health within a bounded readiness window and still fails closed if readiness is not achieved.
 
 ## Deployed Challenge-Only Proof-Header Review
-Block 020 added a public-only security probe against the already-deployed Worker without Cloudflare credentials and without a valid Nano payment proof.
+Block 020 added a public-only security probe against the then-challenge-only Worker without Cloudflare credentials and without a valid Nano payment proof.
 
 Actions run `36282801732`, job `108517755618`, confirmed that a request carrying a deliberately non-payment `payment-signature`:
-- returned HTTP 503 fail-closed;
+- returned HTTP 503 fail-closed while paid traffic was still disabled;
 - returned `cache-control: no-store` and `x-content-type-options: nosniff`;
 - exposed no `payment-response` header;
-- exposed no `payment-required` header on the failed proof path;
-- exposed no protected `analysis`, `canonicalJson`, or `sha256` output;
-- returned the bounded `PAYMENT_UNAVAILABLE` error contract.
+- exposed no protected `analysis`, `canonicalJson`, or `sha256` output.
 
-The same public-only run then confirmed `/health` remained HTTP 200 and a subsequent unpaid `/api/lens` request still returned HTTP 402. No Cloudflare credential was present in the probe and no real payment proof or Nano transfer was used.
-
-The deployed Worker version was built from commit `92aa8971e227520195b58c088a7dfdd0d00f5204`. Comparing that commit to the reviewed Block 019 head showed only workflow, test, and documentation changes; no `src/` runtime file changed. Therefore the public probe exercised the same challenge-only runtime code covered by the local test that requires zero facilitator verify/settle calls when a proof header is submitted while paid traffic is disabled.
+The same run confirmed `/health` remained HTTP 200 and a subsequent unpaid `/api/lens` request still returned HTTP 402. No real payment proof or Nano transfer was used.
 
 ## Paid-Rollout Security Ruling
 Do not self-pay merely to create a live test if doing so would require introducing a buyer seed/private key into GitHub, repository content, CI logs, or ChatGPT conversation data.
 
 The controlled rollout plan is `docs/superpowers/plans/2026-09-26-paid-rollout-and-pursekeeper-submission.md`. It requires:
-- local proof of the `allowPaidTraffic: true` runtime path before the entrypoint changes;
-- a separate manual payment-enable deployment workflow rather than weakening the challenge-only workflow;
-- explicit operator authorization before changing `PAID_TRAFFIC_ENABLED`;
+- local proof of the `allowPaidTraffic: true` runtime path;
+- a separate guarded payment-enable deployment workflow;
+- explicit operator authorization before source-level enablement;
 - post-deploy health, unpaid 402, and malformed-proof checks without spending Nano;
 - submission to Pursekeeper only after the Worker is genuinely payment-capable;
 - Pursekeeper's own first paid listing call as the first controlled real payment;
@@ -126,7 +120,23 @@ Dedicated workflow evidence: Actions run `36284707142`, job `108523139758`, pass
 - performs only health, unpaid 402, and malformed-proof checks after deployment;
 - contains no direct `verifyPayment` or `settlePayment` call.
 
-Because the repository still contains `PAID_TRAFFIC_ENABLED = false as const`, this workflow is currently inert for deployment and cannot bypass the operator authorization gate.
+## Payment-Capable Deployment Evidence
+Block 022 crossed the source-level rollout gate only after explicit operator authorization.
+
+TDD RED evidence: commit `8ea2c2a5f216ae08b9cecb6ab77e2425f686acfa`, Actions run `36285150057`, job `108524392146`, failed only because production still exported `PAID_TRAFFIC_ENABLED = false` while the new test expected `true`.
+
+Reviewed paid source commit `1a34893a5fc9142645adf612af2a51601f5701bf` changed only the rollout constant/comment in `src/worker.ts` and the matching test expectation. Actions run `36285178793`, job `108524476873`, passed 93/93 tests, typecheck, Wrangler dry-run, dependency tree, and audit.
+
+Deployment run `36285252016`, job `108524675284`, pinned that exact source SHA and deployed Cloudflare version `a6c0291a-b90e-447a-949c-8090f382837a` to:
+
+`https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`
+
+Post-deploy non-spending security checks passed:
+- `/health` = HTTP 200;
+- unpaid `/api/lens` = HTTP 402 with expected exact Nano mainnet terms and no protected output;
+- malformed `payment-signature: AAAA` = HTTP 402 `PAYMENT_REJECTED`, no `payment-response`, and no protected output.
+
+No valid payment proof was generated or submitted in Block 022. Therefore the deployment proves payment-capable configuration and malformed-proof safety, not yet successful live facilitator verification or settlement.
 
 ## Vendor SDK Boundary
 The concrete `@x402/core` resource server is isolated behind `src/payment/production-resource-server.ts` rather than leaking vendor protocol types through the generic payment core.
@@ -153,12 +163,12 @@ The V1 production target is Cloudflare D1. The D1 adapter must preserve these in
 
 The atomic `confirmSettlement` store contract exists specifically to remove the prior crash gap in which `settled` could have been persisted before its entitlement receipt. The generic legacy receipt-write method remains for compatibility/local use but is not used by the production payment settlement path.
 
-Local SQLite tests and the remote D1 synthetic probe provide complementary evidence: local tests cover the full adapter/state contract including close/reopen persistence and receipt confirmation, while the remote probe confirms production D1 accepts the expected SQL write/read/CAS/delete pattern. Neither alone authorizes live payment-taking traffic.
+Local SQLite tests and the remote D1 synthetic probe provide complementary evidence: local tests cover the full adapter/state contract including close/reopen persistence and receipt confirmation, while the remote probe confirms production D1 accepts the expected SQL write/read/CAS/delete pattern.
 
 ## Availability
-The health endpoint must be inexpensive and independent of heavy processing. Public challenge-only deployment is live.
+The health endpoint must be inexpensive and independent of heavy processing. The public endpoint is now payment-capable and reachable.
 
-For the seller-credit timing, do not backdate the Pursekeeper 14-day clock to the challenge-only deployment. Record the start from the first Pursekeeper-confirmed listing/reachability-probe date after the paid listing checks pass, unless Pursekeeper explicitly states a different start time.
+For the seller-credit timing, do not backdate the Pursekeeper 14-day clock to either the challenge-only deployment or the Block 022 payment-capable deployment. Record the start from the first Pursekeeper-confirmed listing/reachability-probe date after the paid listing checks pass, unless Pursekeeper explicitly states a different start time.
 
 ## Dependencies
 Before release:
