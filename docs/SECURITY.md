@@ -35,7 +35,7 @@ The deployed Cloudflare Worker retains an explicit source-level payment barrier:
 - `GET /health` remains independent of D1 and facilitator readiness;
 - the production resource URL is derived from the incoming origin plus fixed `/api/lens`, not arbitrary client-provided URL data.
 
-Changing `PAID_TRAFFIC_ENABLED` is a future security-sensitive source change. It must not occur until the deployed challenge-only proof path, live payment test plan, reconciliation behavior, fresh security review, and explicit operator authorization are all independently GREEN.
+Changing `PAID_TRAFFIC_ENABLED` is a future security-sensitive source change. It must not occur until the payment-enabled runtime is proven locally, a separately guarded payment-enable deployment path is GREEN, the live payment/reconciliation plan is reviewed, and the operator explicitly authorizes the source change and deployment.
 
 ## Cloudflare Credentials
 Cloudflare credentials stay outside repository content and ChatGPT conversation data.
@@ -83,13 +83,40 @@ Ruling: treat initial post-deploy reachability as a bounded readiness/propagatio
 
 No payment proof was submitted in the public deployment verification. No live facilitator `verify` or `settle` occurred and no Nano transfer occurred.
 
+## Deployed Challenge-Only Proof-Header Review
+Block 020 added a public-only security probe against the already-deployed Worker without Cloudflare credentials and without a valid Nano payment proof.
+
+Actions run `36282801732`, job `108517755618`, confirmed that a request carrying a deliberately non-payment `payment-signature`:
+- returned HTTP 503 fail-closed;
+- returned `cache-control: no-store` and `x-content-type-options: nosniff`;
+- exposed no `payment-response` header;
+- exposed no `payment-required` header on the failed proof path;
+- exposed no protected `analysis`, `canonicalJson`, or `sha256` output;
+- returned the bounded `PAYMENT_UNAVAILABLE` error contract.
+
+The same public-only run then confirmed `/health` remained HTTP 200 and a subsequent unpaid `/api/lens` request still returned HTTP 402. No Cloudflare credential was present in the probe and no real payment proof or Nano transfer was used.
+
+The deployed Worker version was built from commit `92aa8971e227520195b58c088a7dfdd0d00f5204`. Comparing that commit to the reviewed Block 019 head showed only workflow, test, and documentation changes; no `src/` runtime file changed. Therefore the public probe exercised the same challenge-only runtime code covered by the local test that requires zero facilitator verify/settle calls when a proof header is submitted while paid traffic is disabled.
+
+## Paid-Rollout Security Ruling
+Do not self-pay merely to create a live test if doing so would require introducing a buyer seed/private key into GitHub, repository content, CI logs, or ChatGPT conversation data.
+
+The controlled rollout plan is `docs/superpowers/plans/2026-09-26-paid-rollout-and-pursekeeper-submission.md`. It requires:
+- local proof of the `allowPaidTraffic: true` runtime path before the entrypoint changes;
+- a separate manual payment-enable deployment workflow rather than weakening the challenge-only workflow;
+- explicit operator authorization before changing `PAID_TRAFFIC_ENABLED`;
+- post-deploy health, unpaid 402, and malformed-proof checks without spending Nano;
+- submission to Pursekeeper only after the Worker is genuinely payment-capable;
+- Pursekeeper's own first paid listing call as the first controlled real payment;
+- reconciliation before any retry after an ambiguous settlement outcome.
+
 ## Vendor SDK Boundary
 The concrete `@x402/core` resource server is isolated behind `src/payment/production-resource-server.ts` rather than leaking vendor protocol types through the generic payment core.
 
 The production boundary validates/converts:
 - local `PaymentResourceConfig` to the pinned SDK `ResourceConfig`;
 - local `PaymentResourceInfo` to the pinned SDK `ResourceInfo`;
-- local payment requirements to the SDK requirement structure, including positive timeout and required `extra` normalization`;
+- local payment requirements to the SDK requirement structure, including positive timeout and required `extra` normalization;
 - untrusted decoded proof material into the SDK `PaymentPayload` shape before verify/settle calls;
 - facilitator responses back into the bounded local contract.
 
@@ -111,7 +138,9 @@ The atomic `confirmSettlement` store contract exists specifically to remove the 
 Local SQLite tests and the remote D1 synthetic probe provide complementary evidence: local tests cover the full adapter/state contract including close/reopen persistence and receipt confirmation, while the remote probe confirms production D1 accepts the expected SQL write/read/CAS/delete pattern. Neither alone authorizes live payment-taking traffic.
 
 ## Availability
-The health endpoint must be inexpensive and independent of heavy processing. Public deployment is now live, but the Pursekeeper 14-day window must not be claimed as started until the applicable client submission/acceptance condition is confirmed.
+The health endpoint must be inexpensive and independent of heavy processing. Public challenge-only deployment is live.
+
+For the seller-credit timing, do not backdate the Pursekeeper 14-day clock to the challenge-only deployment. Record the start from the first Pursekeeper-confirmed listing/reachability-probe date after the paid listing checks pass, unless Pursekeeper explicitly states a different start time.
 
 ## Dependencies
 Before release:
