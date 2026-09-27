@@ -18,8 +18,8 @@ test('Cloudflare Worker deployment remains manual, isolated, and challenge-only'
   assert.match(workflow, /wrangler@\$\{WRANGLER_VERSION\}.*deploy/);
   assert.match(workflow, /GET \/health/);
   assert.match(workflow, /POST \/api\/lens/);
-  assert.match(workflow, /EXPECTED_STATUS=200/);
-  assert.match(workflow, /EXPECTED_STATUS=402/);
+  assert.match(workflow, /EXPECTED_STATUS:\s*['"]?200['"]?/);
+  assert.match(workflow, /EXPECTED_STATUS:\s*['"]?402['"]?/);
   assert.doesNotMatch(workflow, /payment-signature/i);
   assert.doesNotMatch(workflow, /verifyPayment|settlePayment/);
 });
