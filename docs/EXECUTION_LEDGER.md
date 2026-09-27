@@ -87,3 +87,24 @@ Created implementation plan `docs/superpowers/plans/2026-09-26-paid-rollout-and-
 Seller timing ruling: do not backdate the 14-day clock to the Block 019 challenge-only deployment. Record the clock from the first Pursekeeper-confirmed listing/reachability-probe date after the paid checks pass unless Pursekeeper explicitly provides another start time.
 
 Task 5 remains IN PROGRESS. `PAID_TRAFFIC_ENABLED` is still `false`; the endpoint has not been submitted to Pursekeeper; no live verify/settle or Nano transfer has occurred.
+
+## Block 021 / Task 5 — paid rollout preparation, production still hard-off
+Branch: `task5-production-nano-payment`.
+
+The previously delayed Block 020 closing CI, Actions run `36283176906`, eventually completed successfully with tests, typecheck, Wrangler dry-run, dependency-tree validation and production audit all GREEN.
+
+Task 1 ruling: the paid-rollout plan expected newly added Worker payment-mode assertions to establish RED before implementation, but `createCloudflareWorkerRuntime` already contained the `allowPaidTraffic: true` branch. The new assertions therefore passed immediately and proved existing behavior. No production behavior was changed merely to manufacture RED.
+
+Commit `4987076673b7ab70afc54579c49236c107976f22`, Actions run `36284474392`, job `108522484660`: 92/92 tests passed. Worker-level regression coverage proves a structurally valid local Nano state-block proof reaches exactly one verify and one settle in payment-enabled mode, returns HTTP 200 with `payment-response`, and releases the promised JSON analysis only after confirmed settlement. Malformed proof returns 402 without protected output, without `payment-response`, and without settlement. Typecheck, Wrangler `4.137.0` dry-run, dependency-tree validation and production audit all passed.
+
+Task 2 TDD RED evidence: commit `2120abfbca6b1c713157dc4694322c3e1b2e853d`, Actions run `36284519752`, job `108522615350`: 93 tests total, 92 passed, exactly one failed with `ENOENT` because `.github/workflows/cloudflare-worker-payment-enable.yml` did not yet exist.
+
+Added a distinct guarded payment-enable workflow in commit `7714311ad89e08ba97e0be24ad193fbcdb507a0a`. It is manual-only, requires literal `ENABLE_PAID_TRAFFIC`, is restricted to `task5-production-nano-payment`, requires the real D1 UUID and `PAYMENT_DB`, uses only the separate Workers deployment credential, and refuses to deploy unless source contains `PAID_TRAFFIC_ENABLED = true as const`. Before deployment it runs tests, typecheck, Wrangler dry-run, dependency tree and production audit. After deployment it runs only non-spending health, unpaid 402 and malformed-proof checks; it contains no valid payment proof and no direct `verifyPayment` or `settlePayment` call.
+
+Task 2 GREEN evidence: Actions run `36284707142`, job `108523139758`: 93/93 tests passed, typecheck passed, Wrangler dry-run passed, dependency tree passed, and production audit reported 0 vulnerabilities.
+
+A temporary repository-write probe created while the connector rejected a direct workflow-file write was removed in the workflow commit. It contained no credential or operational data.
+
+No payment-capable deployment occurred. `PAID_TRAFFIC_ENABLED` remains `false`; the currently public Worker remains challenge-only; no live facilitator verify/settle and no Nano transfer occurred.
+
+Ruling: Task 3 is the first source-level action that can make valid external proofs reach live facilitator verification and settlement. It requires explicit operator authorization specifically to enable paid traffic and deploy. A generic continuation signal is not sufficient for this gate.
