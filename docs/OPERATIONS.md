@@ -1,7 +1,12 @@
 # Operations and Availability
 
-## Initial Availability Goal
-Keep the public endpoint functional throughout any Pursekeeper-required window, with margin beyond the 14-day period once its confirmed start event is known.
+## Active Availability Goal
+Keep the public endpoint functional throughout the confirmed Pursekeeper 14-day reachability window and with reasonable margin afterward.
+
+Confirmed window:
+- start: `2026-09-27`;
+- second-stage date identified by Pursekeeper: `2026-10-11`;
+- requirement: continue answering the reachability probe and keep the payment-taking code public.
 
 ## Health
 Endpoint: `GET /health`
@@ -26,9 +31,11 @@ If an outage occurs:
 4. test health;
 5. test the unpaid 402 challenge;
 6. update the checkpoint;
-7. determine whether Pursekeeper must be informed or any confirmed reachability window must restart.
+7. determine whether Pursekeeper must be informed or whether the reachability condition may have been affected.
 
 For any payment ambiguity, do not automatically retry settlement. Reconcile D1 state and Nano/facilitator evidence first.
+
+If the public `payTo` or the paid route changes, notify Pursekeeper the same day. Pursekeeper explicitly warned that otherwise the seller listing may become stale.
 
 ## Deployment Target
 V1 target: **Cloudflare Workers Free + Cloudflare D1**.
@@ -44,7 +51,7 @@ Official references:
 - https://developers.cloudflare.com/d1/wrangler-commands/
 
 ## Current Worker Rollout State
-The real D1 database and payment-capable Worker are deployed.
+The real D1 database and payment-capable Worker are deployed and have completed a real paid Pursekeeper seller-check call.
 
 - Worker: `nano-json-lens-402`.
 - Public endpoint: `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`.
@@ -56,8 +63,25 @@ The real D1 database and payment-capable Worker are deployed.
 - `/api/lens` requires HTTPS and the real `PAYMENT_DB` binding.
 - D1 UUID: `8cbbea4c-b368-40e5-a7c0-9d72bce2567e`.
 - Migration `0001_payment_state.sql` is applied remotely.
-- Remote synthetic write/read/CAS/delete validation passed before deployment.
-- Valid external payment proofs may now reach production verify/settle. Treat live payment attempts as stateful financial operations.
+- Valid external payment proofs may reach production verify/settle.
+
+## Real Paid Seller-Check Evidence
+Pursekeeper acceptance email: Gmail message ID `1a0e124b3218e1af`, timestamp `2026-09-27T04:34:30Z`.
+
+Pursekeeper reported checks ran at 04:28–04:30 UTC:
+- unpaid `POST /api/lens` returned HTTP 402 with the expected `PAYMENT-REQUIRED` terms;
+- its paid call settled through the Pursekeeper facilitator;
+- the paid route returned HTTP 200 with canonical output, SHA-256, size/depth metrics, and path information;
+- `/health` answered and the paid route remained reachable under probe.
+
+First paid-call send block:
+`BB290B0B406FF6705B42430C4B0082EF9DEC3792FA34825BDE06DC9CADAF635E`
+
+Seller listing: `uknwplayer-json-lens`.
+
+First-stage credit: 10 XNO, Pursekeeper ledger entry 260.
+
+Pursekeeper stated that nothing else is currently required from the operator except same-day notice if the payTo or route changes.
 
 ## D1 Provisioning Evidence
 - Actions run: `36280708030`;
@@ -79,21 +103,12 @@ First challenge-only deployment:
 
 The first immediate health probe after that initial deployment returned HTTP 404 / Cloudflare error 1042. No runtime relaxation was added. Diagnostic run `36282060561`, job `108515655977`, observed the same unchanged Worker returning HTTP 200 shortly afterward. This is handled as bounded initial readiness/propagation.
 
-Independent public-only challenge verification:
-- Actions run: `36282142586`;
-- job: `108515889136`;
-- `GET /health`: HTTP 200;
-- unpaid `POST /api/lens`: HTTP 402;
-- exact Nano mainnet / XNO / expected raw amount / expected payTo: passed;
-- `payment-required` header: present;
-- protected result in unpaid response: absent.
-
 ## Payment-Capable Deployment Evidence
 Block 022 received explicit operator authorization before source-level payment enablement.
 
 Source transition:
 - RED commit: `8ea2c2a5f216ae08b9cecb6ab77e2425f686acfa`;
-- RED Actions run: `36285150057`, job `108524392146` — exactly one intended `false !== true` entrypoint failure;
+- RED Actions run: `36285150057`, job `108524392146`;
 - GREEN paid source: `1a34893a5fc9142645adf612af2a51601f5701bf`;
 - GREEN source CI: `36285178793`, job `108524476873` — 93/93 tests, typecheck, Wrangler dry-run, dependency tree, and audit passed.
 
@@ -101,29 +116,9 @@ Production deployment:
 - one-shot Actions run: `36285252016`;
 - job: `108524675284`;
 - source pinned exactly to `1a34893a5fc9142645adf612af2a51601f5701bf`;
-- deployment: success;
 - Worker URL: `https://nano-json-lens-402.guilhermegomescavalcante-ggc.workers.dev`;
 - Cloudflare version ID: `a6c0291a-b90e-447a-949c-8090f382837a`;
 - D1 binding: real `PAYMENT_DB`.
-
-Post-deploy non-spending validation:
-- `GET /health`: HTTP 200;
-- unpaid `POST /api/lens`: HTTP 402 with expected exact Nano terms;
-- malformed `payment-signature: AAAA`: HTTP 402 with `PAYMENT_REJECTED`;
-- malformed-proof `payment-response`: absent;
-- protected output on unpaid/malformed paths: absent;
-- valid payment proof generated/submitted by the operator: no.
-
-The one-shot launcher branch was reset to the reviewed source SHA after evidence capture, removing the launcher workflow from its branch head.
-
-## Post-deploy Readiness Policy
-Deployment automation uses a bounded health readiness loop after Wrangler reports deployment:
-- maximum attempts: 24;
-- delay between attempts: 5 seconds;
-- failed/temporary HTTP responses are observed but do not cause an immediate false deployment failure;
-- deployment fails if health never reaches 200 within the bounded window;
-- after HTTP 200, the exact `status=ok` / `version=1` body contract is validated;
-- only then are public endpoint probes executed.
 
 ## Cloudflare Credential Handling
 Repository Actions secrets are separated by function:
@@ -147,26 +142,11 @@ Operational rules:
 - settlement state and receipt must be confirmed in one conditional database update;
 - after deploy/redeploy, confirm the same D1 binding is present before allowing a live payment attempt.
 
-## Pursekeeper Submission State
-The payment-capable endpoint has been submitted to Pursekeeper and is now waiting for the seller checks.
-
-Submission evidence:
-- thread: `Eligibility question — seller newcomer credit — uknwplayer`;
-- intended sent message ID: `1a0e08c4daebfbfe`;
-- intended submission timestamp: `2026-09-27T01:48:06Z`;
-- an identical accidental duplicate was sent at `2026-09-27T01:48:37Z`, message ID `1a0e08cc72239d50`;
-- no third message or correction was sent.
-
-Current operating rules:
-1. do not resend the submission while waiting for Pursekeeper;
-2. keep the endpoint reachable and payment-capable;
-3. treat Pursekeeper's first valid paid seller-check call as the first controlled live payment;
-4. if any verify/settle result is ambiguous, reconcile D1 and Nano/facilitator evidence before any retry;
-5. record seller acceptance and 10 XNO prepaid-call credit only from explicit Pursekeeper evidence;
-6. do not introduce a seller-side Nano seed/private key merely to self-pay.
-
-## Pursekeeper Window
-The endpoint is publicly reachable, payment-capable, and submitted, but the project does not infer the start of the Pursekeeper 14-day window from deployment or submission alone. Record a window start only when the relevant Pursekeeper listing/reachability condition is confirmed from client evidence.
-
-## Changes During a Confirmed 14-Day Window
-Avoid high-risk changes during the confirmed window. Urgent fixes should be small, tested, and documented.
+## Active 14-Day Window Rules
+1. Keep the endpoint and current paid route reachable.
+2. Keep payment-taking code public in this repository.
+3. Avoid unnecessary production changes during the window.
+4. If a change is necessary, keep it small, tested, documented, and compatible with the listing.
+5. Notify Pursekeeper the same day if the payTo or route changes.
+6. Record any outage or meaningful reachability incident immediately.
+7. On/after 2026-10-11, verify the second-stage result and record the 15 XNO evidence before claiming completion.
