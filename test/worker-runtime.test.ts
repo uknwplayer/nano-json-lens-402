@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createPaymentBootstrap } from '../src/payment/bootstrap.ts';
 import { createCloudflareWorkerRuntime } from '../src/worker-runtime.ts';
@@ -56,7 +57,7 @@ function database(): SQLiteD1Database {
   return db;
 }
 
-function runtime(resourceServer = fakeResourceServer()) {
+function runtime(allowPaidTraffic = false, resourceServer = fakeResourceServer()) {
   return {
     resourceServer,
     worker: createCloudflareWorkerRuntime({
@@ -64,12 +65,38 @@ function runtime(resourceServer = fakeResourceServer()) {
       payTo,
       priceXno: '0.01',
       facilitatorUrl,
-      allowPaidTraffic: false,
+      allowPaidTraffic,
     }),
   };
 }
 
 const body = JSON.stringify({ document: { hello: 'world' } });
+const requestDigest = createHash('sha256').update(body, 'utf8').digest('hex');
+const nanoBlock = Object.freeze({
+  type: 'state',
+  account: payTo,
+  previous: 'A'.repeat(64),
+  representative: payTo,
+  balance: '123456789',
+  link: 'B'.repeat(64),
+  signature: 'C'.repeat(128),
+  work: 'D'.repeat(16),
+});
+
+function paymentProof(): string {
+  return Buffer.from(JSON.stringify({
+    x402Version: 2,
+    accepted: {
+      scheme: 'exact',
+      network: 'nano:mainnet',
+      asset: 'XNO',
+      amount: '10000000000000000000000000000',
+      payTo,
+      extra: { requestDigest },
+    },
+    payload: { block: nanoBlock },
+  }), 'utf8').toString('base64');
+}
 
 function lensRequest(headers: Record<string, string> = {}): Request {
   return new Request('https://nano-json-lens-402.example/api/lens', {
@@ -145,5 +172,38 @@ test('challenge-only runtime never reaches verify or settle when a proof is subm
   assert.equal(response.status, 503);
   assert.equal(resourceServer.counters.verifyCalls, 0);
   assert.equal(resourceServer.counters.settleCalls, 0);
+  db.close();
+});
+
+test('payment-enabled runtime verifies and settles one valid proof before releasing analysis', async () => {
+  const { worker, resourceServer } = runtime(true);
+  const db = database();
+
+  const response = await worker.fetch(lensRequest({ 'payment-signature': paymentProof() }), { PAYMENT_DB: db });
+
+  assert.equal(response.status, 200);
+  assert.equal(resourceServer.counters.initializeCalls, 1);
+  assert.equal(resourceServer.counters.verifyCalls, 1);
+  assert.equal(resourceServer.counters.settleCalls, 1);
+  assert.ok(response.headers.get('payment-response'));
+  const payload = await response.json() as Record<string, unknown>;
+  assert.equal(payload.mode, 'document');
+  assert.equal((payload.analysis as Record<string, unknown>).canonicalJson, '{"hello":"world"}');
+  db.close();
+});
+
+test('payment-enabled runtime rejects malformed proof without protected output or settlement', async () => {
+  const { worker, resourceServer } = runtime(true);
+  const db = database();
+
+  const response = await worker.fetch(lensRequest({ 'payment-signature': 'AAAA' }), { PAYMENT_DB: db });
+
+  assert.equal(response.status, 402);
+  assert.equal(resourceServer.counters.verifyCalls, 0);
+  assert.equal(resourceServer.counters.settleCalls, 0);
+  assert.equal(response.headers.get('payment-response'), null);
+  const payload = await response.json() as Record<string, unknown>;
+  assert.equal((payload.error as Record<string, unknown>).code, 'PAYMENT_REJECTED');
+  assert.equal('analysis' in payload, false);
   db.close();
 });
