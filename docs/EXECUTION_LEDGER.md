@@ -58,3 +58,32 @@ Ruling: the observed initial failure is handled as bounded deployment readiness/
 Readiness RED: commit `22f2a02e71add01ee564635ab639869a5cb59f4a`, Actions run `36282176562`, 90 total / 89 passed / one intended workflow-contract failure. GREEN: commit `8f3a8b42e65d4d7f26cb1da4eae10db52fbe09ee`, Actions run `36282271750`, job `108516259954`: 90/90 tests, typecheck, Wrangler dry-run, dependency tree, and production audit passed.
 
 Security status at block close: `PAID_TRAFFIC_ENABLED` remains `false`; no payment proof was submitted; no live facilitator verify/settle occurred; no Nano transfer occurred. Public reachability is proven, but the Pursekeeper 14-day window is not claimed as started until its client-side submission/acceptance trigger is confirmed.
+
+## Block 020 / Task 5 — deployed proof-header review and paid-rollout plan
+Branch: `task5-production-nano-payment`.
+
+Revalidated the branch at `c242f52459bf0de32d16fa4dad415eea96be7f52` before probing the public deployment.
+
+A one-shot public-only security workflow on temporary branch `work/public-worker-security-review` performed no Cloudflare-authenticated action and submitted no valid Nano payment proof. Actions run `36282801732`, job `108517755618`, completed successfully and proved:
+- a deliberately non-payment `payment-signature` returned HTTP 503;
+- `cache-control: no-store` and `x-content-type-options: nosniff` remained present;
+- no `payment-response` header appeared;
+- no failed-proof `payment-required` header appeared;
+- no protected `analysis`, `canonicalJson`, or `sha256` appeared;
+- the bounded error code was `PAYMENT_UNAVAILABLE`;
+- `/health` remained HTTP 200 immediately afterward;
+- a subsequent unpaid `/api/lens` request still returned HTTP 402.
+
+The probe pinned the reviewed source and checked both the source-controlled `PAID_TRAFFIC_ENABLED = false` gate and the challenge-only `verifyAndSettle` blocker. No Cloudflare credential, payment seed/private key, facilitator verify, facilitator settle, or Nano transfer was used.
+
+Compared deployed source commit `92aa8971e227520195b58c088a7dfdd0d00f5204` to Block 019 head `c242f52459bf0de32d16fa4dad415eea96be7f52`: the nine intervening commits changed workflow/tests/docs only and did not change `src/` runtime code. This supports the local/deployed correspondence for the challenge-only security behavior.
+
+Reviewed the direct Pursekeeper eligibility thread. Pursekeeper explicitly instructed: send the endpoint when it is live; seller listings need no hold. The required seller checks are unpaid 402 terms, one paid call by Pursekeeper that completes and delivers the promised utility, and continued availability. Therefore the current challenge-only Worker must not yet be submitted as acceptance-ready because its required paid call is intentionally blocked.
+
+Ruling: the project will not introduce a Nano buyer seed/private key merely to self-pay. The first controlled real payment should be Pursekeeper's own required listing call after a separately guarded payment-enabled deployment is proven and explicitly authorized.
+
+Created implementation plan `docs/superpowers/plans/2026-09-26-paid-rollout-and-pursekeeper-submission.md`. It separates: local paid-runtime proof, guarded payment-enable deployment automation, explicit source enablement authorization, non-spending post-deploy validation, seller submission, and first paid-call reconciliation.
+
+Seller timing ruling: do not backdate the 14-day clock to the Block 019 challenge-only deployment. Record the clock from the first Pursekeeper-confirmed listing/reachability-probe date after the paid checks pass unless Pursekeeper explicitly provides another start time.
+
+Task 5 remains IN PROGRESS. `PAID_TRAFFIC_ENABLED` is still `false`; the endpoint has not been submitted to Pursekeeper; no live verify/settle or Nano transfer has occurred.
