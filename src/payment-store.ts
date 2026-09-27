@@ -18,6 +18,8 @@ type PaymentRow = {
   receipt_json: string | null;
 };
 
+type Statement = ReturnType<DatabaseSync['prepare']>;
+
 function assertIdentity(name: string, value: string): void {
   if (!HEX_64.test(value)) throw new Error(`${name} must be a 256-bit hexadecimal identifier.`);
 }
@@ -46,6 +48,10 @@ function rowToRecord(row: PaymentRow): PaymentRecord {
 
 export class SqlitePaymentStateStore implements PaymentStateStore {
   readonly #db: DatabaseSync;
+  readonly #insert: Statement;
+  readonly #update: Statement;
+  readonly #selectPayment: Statement;
+  readonly #selectOperation: Statement;
   #closed = false;
 
   constructor(path: string) {
@@ -64,6 +70,24 @@ export class SqlitePaymentStateStore implements PaymentStateStore {
         updated_at_ms INTEGER NOT NULL
       ) STRICT;
     `);
+    this.#insert = this.#db.prepare(`
+      INSERT OR IGNORE INTO payment_state
+        (payment_identity, request_id, operation_id, state, receipt_json, updated_at_ms)
+      VALUES (?, ?, ?, 'settling', NULL, ?)
+    `);
+    this.#update = this.#db.prepare(`
+      UPDATE payment_state
+      SET state = ?, receipt_json = ?, updated_at_ms = ?
+      WHERE operation_id = ?
+    `);
+    this.#selectPayment = this.#db.prepare(`
+      SELECT payment_identity, request_id, operation_id, state, receipt_json
+      FROM payment_state WHERE payment_identity = ?
+    `);
+    this.#selectOperation = this.#db.prepare(`
+      SELECT payment_identity, request_id, operation_id, state, receipt_json
+      FROM payment_state WHERE operation_id = ?
+    `);
   }
 
   async claim(record: PaymentRecord): Promise<PaymentClaim> {
@@ -75,19 +99,12 @@ export class SqlitePaymentStateStore implements PaymentStateStore {
       throw new Error('New payment claims must begin in settling state without a receipt.');
     }
 
-    const insert = this.#db.prepare(`
-      INSERT OR IGNORE INTO payment_state
-        (payment_identity, request_id, operation_id, state, receipt_json, updated_at_ms)
-      VALUES (?, ?, ?, 'settling', NULL, ?)
-    `);
-    const result = insert.run(
+    const result = this.#insert.run(
       record.paymentIdentity.toLowerCase(),
       record.requestId.toLowerCase(),
       record.operationId.toLowerCase(),
       Date.now(),
     );
-    insert.close();
-
     const stored = this.#getByPaymentIdentity(record.paymentIdentity);
     if (!stored) throw new Error('Payment claim could not be persisted consistently.');
     if (Number(result.changes) === 1) return { kind: 'new', record: stored };
@@ -110,18 +127,12 @@ export class SqlitePaymentStateStore implements PaymentStateStore {
     if (state === 'settled' && !validReceipt(receipt)) throw new Error('Settled state requires a valid receipt.');
     if (state !== 'settled' && receipt !== undefined) throw new Error('Only settled state may retain a receipt.');
 
-    const statement = this.#db.prepare(`
-      UPDATE payment_state
-      SET state = ?, receipt_json = ?, updated_at_ms = ?
-      WHERE operation_id = ?
-    `);
-    const result = statement.run(
+    const result = this.#update.run(
       state,
       receipt === undefined ? null : JSON.stringify(receipt),
       Date.now(),
       operationId.toLowerCase(),
     );
-    statement.close();
     if (Number(result.changes) !== 1) throw new Error('Payment operation update was not durable.');
 
     const updated = this.#getByOperationId(operationId);
@@ -136,22 +147,12 @@ export class SqlitePaymentStateStore implements PaymentStateStore {
   }
 
   #getByPaymentIdentity(paymentIdentity: string): PaymentRecord | undefined {
-    const statement = this.#db.prepare(`
-      SELECT payment_identity, request_id, operation_id, state, receipt_json
-      FROM payment_state WHERE payment_identity = ?
-    `);
-    const row = statement.get(paymentIdentity.toLowerCase()) as PaymentRow | undefined;
-    statement.close();
+    const row = this.#selectPayment.get(paymentIdentity.toLowerCase()) as PaymentRow | undefined;
     return row ? rowToRecord(row) : undefined;
   }
 
   #getByOperationId(operationId: string): PaymentRecord | undefined {
-    const statement = this.#db.prepare(`
-      SELECT payment_identity, request_id, operation_id, state, receipt_json
-      FROM payment_state WHERE operation_id = ?
-    `);
-    const row = statement.get(operationId.toLowerCase()) as PaymentRow | undefined;
-    statement.close();
+    const row = this.#selectOperation.get(operationId.toLowerCase()) as PaymentRow | undefined;
     return row ? rowToRecord(row) : undefined;
   }
 
