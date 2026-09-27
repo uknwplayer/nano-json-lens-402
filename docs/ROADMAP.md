@@ -31,7 +31,7 @@ When a material milestone is reached, also create a historical snapshot under `d
 - [x] Pin production x402 dependency versions and integrity lock.
 - [x] Confirm the pinned production bootstrap can synchronize live Pursekeeper capabilities read-only.
 
-Blocks 004 and 011–022 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only deployment and public security review, local payment-enabled runtime evidence, a guarded paid deployment path, explicit source-level payment enablement, and a publicly deployed payment-capable Worker. The first valid live payment is still intentionally deferred to Pursekeeper's seller-listing check.
+Blocks 004 and 011–024 established protocol discovery, pinned package integration, fail-closed bootstrap, durable real D1 state, challenge-only deployment and public security review, local payment-enabled runtime evidence, a guarded paid deployment path, explicit source-level payment enablement, a publicly deployed payment-capable Worker, and seller submission to Pursekeeper. The first valid live payment is now awaiting Pursekeeper's seller check.
 
 ## Phase 2 — JSON Lens Core
 - [x] Strict UTF-8 request parser and envelope validation.
@@ -88,6 +88,8 @@ Block 021 added local payment-enabled Worker regression evidence without changin
 
 Block 022 received explicit operator authorization, established TDD RED at run `36285150057`, then enabled only the source rollout constant in commit `1a34893a5fc9142645adf612af2a51601f5701bf`. Run `36285178793` passed the complete source verification suite. One-shot deployment run `36285252016`, job `108524675284`, pinned that exact reviewed SHA and deployed Cloudflare version `a6c0291a-b90e-447a-949c-8090f382837a`. Public health 200, unpaid 402 exact terms, and malformed-proof 402 rejection all passed. No valid payment proof, successful live verify/settle, or Nano transfer occurred.
 
+Block 024 submitted the seller endpoint in the existing Pursekeeper eligibility thread after explicit operator authorization. The intended submission was sent at `2026-09-27T01:48:06Z` (Gmail message ID `1a0e08c4daebfbfe`). An identical duplicate was accidentally sent 31 seconds later while attempting to read back the send result (`1a0e08cc72239d50`). No further message was sent; the project now waits for Pursekeeper's seller checks.
+
 ## Phase 4 — Public Service
 - [x] Local Fetch HTTP handler and 12 integration tests.
 - [x] Add Cloudflare Worker runtime/entrypoint and D1 binding contract.
@@ -113,7 +115,7 @@ Block 022 received explicit operator authorization, established TDD RED at run `
 - [x] Confirm the first real paid listing call is expected to be made by Pursekeeper.
 - [x] Complete local paid-mode proof and guarded paid deployment path.
 - [x] Explicitly authorize and deploy payment-capable Worker.
-- [ ] Submit endpoint to Pursekeeper.
+- [x] Submit endpoint to Pursekeeper.
 - [ ] Pursekeeper confirms 402 challenge.
 - [ ] First paid call delivers a real result.
 - [ ] Confirm listing/online state.
